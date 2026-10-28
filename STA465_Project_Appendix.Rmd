@@ -10,6 +10,11 @@ output:
     highlight: tango
     number_sections: true
 ---
+```{r setup, include=FALSE}
+# Paths come from config.yml at the repo root (see R/config.R).
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+owd <- setwd(".."); source("R/config.R"); setwd(owd)
+```
 ```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 library(dplyr)
 library(knitr)
@@ -18,10 +23,10 @@ library(sf)
 library(leaflet)
 library(leaflet.extras)
 # Load pb-vnf_230414-240901.rds
-pb_vnf <- readRDS("pb-vnf_230414-240901.rds")
+pb_vnf <- readRDS(raw_path("spatial", "pb-vnf_230414-240901.rds"))
 
 # Load cb_wells_prod.rds
-cb_wells_prod <- readRDS("cb_wells_prod.rds") # pretty cleaned
+cb_wells_prod <- readRDS(raw_path("spatial", "cb_wells_prod.rds")) # pretty cleaned
 
 
 
@@ -29,7 +34,7 @@ pb_vnf<-pb_vnf[pb_vnf$date>="2023-05-01" & pb_vnf$date<="2024-05-31",] # study p
 ```
 ```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Load cb_wells_prod.rds
-cb_wells_prod <- readRDS("cb_wells_prod.rds") # pretty cleaned
+cb_wells_prod <- readRDS(raw_path("spatial", "cb_wells_prod.rds")) # pretty cleaned
 
 
 cb_wells_prod<-cb_wells_prod[cb_wells_prod$prod_date>="2023-05-01" & cb_wells_prod$prod_date<="2024-05-31",]
@@ -223,11 +228,11 @@ wells_summary_data_table %>%
 #  kable_styling(bootstrap_options = "striped", full_width = F)
 
 # Save the table as an HTML file
-# save_kable(table_html, "wells_summary_data_table.html")
+# save_kable(table_html, output_path("notebooks", "wells_summary_data_table.html"))
 ```
 ## Table 3: Summary Statistics For Sound Frequencies
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-load("sound_pollutant_met_data.rdata")
+load(processed_path("sound_pollutant_met_data.rdata"))
 
 # Define the variables of interest without LAleq
 frequency_variables_of_interest <- c(
@@ -280,7 +285,7 @@ table_html
 #  kable_styling(bootstrap_options = "striped", full_width = F)
 
 # Save the table as an HTML file
-# save_kable(table_html, "frequency_summary_data.html")
+# save_kable(table_html, output_path("notebooks", "frequency_summary_data.html"))
 ```
 
 

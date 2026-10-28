@@ -3,9 +3,14 @@ title: "Modelling"
 author: "Kaiwen Yang"
 output_document: pdf_document
 ---
+```{r setup, include=FALSE}
+# Paths come from config.yml at the repo root (see R/config.R).
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+owd <- setwd(".."); source("R/config.R"); setwd(owd)
+```
 # Load sound_pollutant_met_data.rdata from sound_pollu_met_merge.Rmd
 ```{r}
-load("sound_pollutant_met_data.rdata")
+load(processed_path("sound_pollutant_met_data.rdata"))
 ```
 
 ```{r}

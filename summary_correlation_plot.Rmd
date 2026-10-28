@@ -3,9 +3,14 @@ title: "Summary Tables and Correlation Plot"
 author: "Kaiwen Yang"
 output_document: html_document
 ---
+```{r setup, include=FALSE}
+# Paths come from config.yml at the repo root (see R/config.R).
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+owd <- setwd(".."); source("R/config.R"); setwd(owd)
+```
 # Load sound_pollutant_met_data.rdata from sound_pollu_met_merge.Rmd
 ```{r}
-load("sound_pollutant_met_data.rdata")
+load(processed_path("sound_pollutant_met_data.rdata"))
 ```
 
 ```{r}
@@ -86,7 +91,7 @@ table_html <- kable(frequency_summary_data, format = "html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
 # Save the table as an HTML file
-# save_kable(table_html, "frequency_summary_table.html")
+# save_kable(table_html, output_path("notebooks", "frequency_summary_table.html"))
 
 ```
 
@@ -141,7 +146,7 @@ table_html <- kable(pollu_summary_table, format = "html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
 # Save the table as an HTML file
-save_kable(table_html, "pollutant_summary_table.html")
+save_kable(table_html, output_path("notebooks", "pollutant_summary_table.html"))
 ```
 
 ## Meteorological Factor
@@ -194,7 +199,7 @@ table_html <- kable(met_summary_table, format = "html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
 # Save the table as an HTML file
-save_kable(table_html, "met_summary_table.html")
+save_kable(table_html, output_path("notebooks", "met_summary_table.html"))
 ```
 
 
@@ -258,7 +263,7 @@ head(frequency_filtered_data)
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-# png("frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+# png(output_path("notebooks", "frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 1: Compute the correlation matrix
 frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
@@ -329,7 +334,7 @@ corrplot(frequency_cor_matrix,
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-#png("frequency_correlation_greater_0.9_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+#png(output_path("notebooks", "frequency_correlation_greater_0.9_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
 nine_greater_matrix <- frequency_cor_matrix
@@ -359,7 +364,7 @@ title("Frequency Heat Map Highlighting Correlations ≥ 0.9", line = 3)  # Adjus
 ### Correlation Heatmap of cor >= 0.85
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("frequency_correlation_greater_0.85_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "frequency_correlation_greater_0.85_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -391,7 +396,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("frequency_correlation_greater_0.80_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "frequency_correlation_greater_0.80_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -423,7 +428,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("frequency_correlation_greater_0.75_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "frequency_correlation_greater_0.75_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -455,7 +460,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("frequency_correlation_greater_0.70_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "frequency_correlation_greater_0.70_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -488,7 +493,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("frequency_correlation_greater_0.60_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "frequency_correlation_greater_0.60_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -534,7 +539,7 @@ nox_frequency_filtered_data <- sound_pollutant_met_data[, nox_frequency_variable
 
 ```{r}
 # Save the plot as a PNG file
-png("nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "nox_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 1: Compute the correlation matrix
@@ -562,7 +567,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "nox_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -592,7 +597,7 @@ dev.off()
 ### Correlation Heatmap of cor < 0
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("nox_frequency_correlation_smaller_0_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "nox_frequency_correlation_smaller_0_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -625,7 +630,7 @@ dev.off()
 ### Correlation Heatmap of cor <= -0.3
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("nox_frequency_correlation_smaller_-0.3_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "nox_frequency_correlation_smaller_-0.3_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -686,7 +691,7 @@ met_nox_cor_matrix <- rcorr(as.matrix(nox_met_filtered_data))$r  # This will cal
 
 ```{r}
 # Save the plot as a PNG file
-png("met_nox_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "met_nox_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 3: Plot the correlation matrix using corrplot
@@ -712,7 +717,7 @@ dev.off()
 ### Correlation Heatmap of cor <= -0.3
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("met_nox_correlation_smaller_-0.3_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "met_nox_correlation_smaller_-0.3_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -743,7 +748,7 @@ dev.off()
 ### Correlation Heatmap of cor <= -0.4
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("met_nox_correlation_smaller_-0.4_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "met_nox_correlation_smaller_-0.4_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -774,7 +779,7 @@ dev.off()
 ### Correlation Heatmap of cor <= -0.5
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("met_nox_correlation_smaller_-0.5_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "met_nox_correlation_smaller_-0.5_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -829,7 +834,7 @@ frequency_filtered_data <- sound_low_temp_ws[, frequency_variables_of_interest, 
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 1: Compute the correlation matrix
 frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
@@ -857,7 +862,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -888,7 +893,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -943,7 +948,7 @@ nox_frequency_filtered_data <- sound_low_temp_ws[, nox_frequency_variables_of_in
 
 ```{r}
 # Save the plot as a PNG file
-png("pearson_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_nox_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 1: Compute the correlation matrix
@@ -971,7 +976,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1001,7 +1006,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1058,7 +1063,7 @@ frequency_filtered_data <- sound_low_temp_ws[, frequency_variables_of_interest, 
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 1: Compute the correlation matrix
 frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
@@ -1086,7 +1091,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1117,7 +1122,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1172,7 +1177,7 @@ nox_frequency_filtered_data <- sound_low_temp_ws[, nox_frequency_variables_of_in
 
 ```{r}
 # Save the plot as a PNG file
-png("spearman_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_nox_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 1: Compute the correlation matrix
@@ -1200,7 +1205,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1230,7 +1235,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1292,7 +1297,7 @@ frequency_filtered_data <- sound_high_temp_ws[, frequency_variables_of_interest,
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 1: Compute the correlation matrix
 frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
@@ -1320,7 +1325,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1351,7 +1356,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1406,7 +1411,7 @@ nox_frequency_filtered_data <- sound_high_temp_ws[, nox_frequency_variables_of_i
 
 ```{r}
 # Save the plot as a PNG file
-png("pearson_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_nox_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 1: Compute the correlation matrix
@@ -1434,7 +1439,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1464,7 +1469,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1521,7 +1526,7 @@ frequency_filtered_data <- sound_high_temp_ws[, frequency_variables_of_interest,
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 # Step 1: Compute the correlation matrix
 frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
@@ -1549,7 +1554,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1580,7 +1585,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1635,7 +1640,7 @@ nox_frequency_filtered_data <- sound_high_temp_ws[, nox_frequency_variables_of_i
 
 ```{r}
 # Save the plot as a PNG file
-png("spearman_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_nox_frequency_correlation_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 1: Compute the correlation matrix
@@ -1663,7 +1668,7 @@ dev.off()
 ### Correlation Heatmap of cor >= 0.9
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 800, height = 800)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot
@@ -1693,7 +1698,7 @@ dev.off()
 
 ```{r warning=FALSE}
 # Save the plot as a PNG file
-png("spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+png(output_path("notebooks", "spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png"), width = 1000, height = 1000)  # Set desired dimensions
 
 
 # Step 2: Set correlations below 0.9 to NA to hide them in the plot

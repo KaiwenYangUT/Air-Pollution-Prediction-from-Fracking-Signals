@@ -3,6 +3,11 @@ title: "STA497 9.24 Meeting Task"
 author: Kaiwen Yang
 output: pdf_document
 ---
+```{r setup, include=FALSE}
+# Paths come from config.yml at the repo root (see R/config.R).
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+owd <- setwd(".."); source("R/config.R"); setwd(owd)
+```
 # Sound Data Processing
 ## Stack Logged Spectra and Logged BB, seperately
 ```{r, warning=FALSE}
@@ -10,7 +15,7 @@ output: pdf_document
 library(data.table)
 
 # Set the working directory to the STA497 folder
-setwd("./Raw")
+setwd(raw_path("sound"))
 
 # Get a list of all LNM folders
 folders <- list.dirs(".", recursive = FALSE, full.names = TRUE)
@@ -123,32 +128,32 @@ for (folder in folders) {
 # Stack all the data for each group
 if (length(logged_spectra_list) > 0) {
   logged_spectra_combined <- rbindlist(logged_spectra_list, fill = TRUE)
-  save(logged_spectra_combined, file = "../008_097_logged_spectra.rdata")
+  save(logged_spectra_combined, file = processed_path("008_097_logged_spectra.rdata"))
 }
 
 # if (length(total_spectra_list) > 0) {
 #   total_spectra_combined <- rbindlist(total_spectra_list, fill = TRUE)
-#   save(total_spectra_combined, file = "../009_097_total_spectra.rdata")
+#   save(total_spectra_combined, file = processed_path("009_097_total_spectra.rdata"))
 # }
 
 if (length(logged_bb_list) > 0) {
   logged_bb_combined <- rbindlist(logged_bb_list, fill = TRUE)
-  save(logged_bb_combined, file = "../008_097_logged_bb.rdata")
+  save(logged_bb_combined, file = processed_path("008_097_logged_bb.rdata"))
 }
 
 # if (length(total_bb_list) > 0) {
 #   total_bb_combined <- rbindlist(total_bb_list, fill = TRUE)
-#   save(total_bb_combined, file = "../009_097_total_bb.rdata")
+#   save(total_bb_combined, file = processed_path("009_097_total_bb.rdata"))
 # }
 
 # if (length(logged_ln_list) > 0) {
 #   logged_ln_combined <- rbindlist(logged_ln_list, fill = TRUE)
-#   save(logged_ln_combined, file = "../009_097_logged_ln.rdata")
+#   save(logged_ln_combined, file = processed_path("009_097_logged_ln.rdata"))
 # }
 
 # if (length(total_ln_list) > 0) {
 #   total_ln_combined <- rbindlist(total_ln_list, fill = TRUE)
-#   save(total_ln_combined, file = "../009_097_total_ln.rdata")
+#   save(total_ln_combined, file = processed_path("009_097_total_ln.rdata"))
 # }
 
 # Report missing or empty files
@@ -240,14 +245,14 @@ if (length(empty_logged_bb) > 0) {
 
 ## Load the stacked data of logged_bb
 ```{r}
-load("008_097_logged_bb.rdata")
+load(processed_path("008_097_logged_bb.rdata"))
 
 head(logged_bb_combined)
 ```
 ## Load the stacked data of logged_spectra
 ```{r}
 # Load the 009_097_total_spectra.rdata file
-load("008_097_logged_spectra.rdata")
+load(processed_path("008_097_logged_spectra.rdata"))
 
 # Display the head of the loaded data
 head(logged_spectra_combined)
@@ -370,12 +375,12 @@ ggplot(sound_merged_data, aes(x = Start_Time, y = `LZeq 125Hz`)) +
 
 ### Save merged data as .rdata
 ```{r}
-save(sound_merged_data, file = "sound_merge_data.rdata")
+save(sound_merged_data, file = processed_path("sound_merge_data.rdata"))
 ```
 
 # Load NOx (nox, no, no2) data
 ```{r}
-nox_data <- read.csv("Boulder_AIR_LNM_nox_finalized_1min.csv")
+nox_data <- read.csv(raw_path("pollutants", "Boulder_AIR_LNM_nox_finalized_1min.csv"))
 ```
 
 ## Remove the first row of data since empty
@@ -432,7 +437,7 @@ latest_time_nox
 
 ## Earliest non NA time of sound data is "2023-04-18 10:46:33 EDT"
 ```{r}
-load("sound_merge_data.rdata")
+load(processed_path("sound_merge_data.rdata"))
 ```
 ```{r}
 earliest_time_sound <- min(sound_merged_data$Start_Time, na.rm = TRUE)
@@ -563,7 +568,7 @@ colnames(sound_nox_data)
 
 # Read in o3 data
 ```{r}
-o3_data <- read.csv("Boulder_AIR_LNM_o3_finalized_1min.csv")
+o3_data <- read.csv(raw_path("pollutants", "Boulder_AIR_LNM_o3_finalized_1min.csv"))
 ```
 
 ## Remove the first row of data since empty
@@ -602,7 +607,7 @@ o3_data$time_utc <- as.POSIXct(o3_data$time_utc, format = "%Y-%m-%d %H:%M", tz =
 
 # Read in co data
 ```{r}
-co_data <- read.csv("Boulder_AIR_LNM_co_finalized_1min.csv")
+co_data <- read.csv(raw_path("pollutants", "Boulder_AIR_LNM_co_finalized_1min.csv"))
 ```
 
 ```{r echo=FALSE}
@@ -659,7 +664,7 @@ earliest_time_co
 
 # Read in h2s data
 ```{r}
-h2s_data <- read.csv("Boulder_AIR_LNM_h2s_finalized_1min.csv")
+h2s_data <- read.csv(raw_path("pollutants", "Boulder_AIR_LNM_h2s_finalized_1min.csv"))
 
 ```
 
@@ -736,7 +741,7 @@ earliest_time_h2s
 
 # Read in ch4 data
 ```{r}
-ch4_data <- read.csv("Boulder_AIR_LNM_ch4_finalized_1min.csv")
+ch4_data <- read.csv(raw_path("pollutants", "Boulder_AIR_LNM_ch4_finalized_1min.csv"))
 ```
 ```{r echo=FALSE}
 head(ch4_data)
@@ -908,7 +913,7 @@ print(na_ch4_counts)
 
 # Read in meteorological data
 ```{r}
-met_data <- read.csv("Boulder_AIR_LNM_met_finalized_1min_w_wvmx.csv")
+met_data <- read.csv(raw_path("met", "Boulder_AIR_LNM_met_finalized_1min_w_wvmx.csv"))
 ```
 ```{r echo=FALSE}
 head(met_data)
@@ -1021,20 +1026,20 @@ print(na_ch4_counts)
 
 ## Pollutant Sound Data
 ```{r}
-save(sound_pollutant_data, file = "sound_pollutant_data.rdata")
+save(sound_pollutant_data, file = processed_path("sound_pollutant_data.rdata"))
 ```
 
 ```{r}
-write.csv(sound_pollutant_data, "sound_pollutant_data.csv")
+write.csv(sound_pollutant_data, processed_path("sound_pollutant_data.csv"))
 ```
 
 ## Meteorological Pollutant Sound Data
 ```{r}
-save(sound_pollutant_met_data, file = "sound_pollutant_met_data.rdata")
+save(sound_pollutant_met_data, file = processed_path("sound_pollutant_met_data.rdata"))
 ```
 
 ```{r}
-write.csv(sound_pollutant_met_data, "sound_pollutant_met_data.csv")
+write.csv(sound_pollutant_met_data, processed_path("sound_pollutant_met_data.csv"))
 ```
 
 ```{r}
