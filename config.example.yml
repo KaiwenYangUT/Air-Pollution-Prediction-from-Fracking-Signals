@@ -1,0 +1,24 @@
+# Copy to config.yml (gitignored) and edit paths for your machine.
+# The data is confidential and is never stored inside this repository.
+
+# Root of the data folder, laid out as:
+#   raw/sound/LNM*/        raw sound-level-meter logs (LoggedBB, LoggedSpectra, ...)
+#   raw/pollutants/        Boulder_AIR_LNM_{ch4,co,h2s,nox,o3}_finalized_1min.csv
+#   raw/met/               Boulder_AIR_LNM_met_finalized_1min_w_wvmx.csv
+#   raw/spatial/           cb_wells_prod.rds, pb-vnf_230414-240901.rds
+#   processed/             legacy derived data from the original 2024-25 runs (read-only baseline)
+data_root: ~/STA497_data
+
+# Where the pipeline writes derived data. Kept separate so legacy files are never overwritten.
+processed_dir: ~/STA497_data/processed_rerun
+
+# Legacy derived data used as the verification baseline.
+legacy_processed_dir: ~/STA497_data/processed
+
+# Figures, tables, maps, logs (relative to the repo root; gitignored).
+outputs_dir: outputs
+
+# Time zone the sound-logger "Start Time" strings are interpreted in. The original
+# notebooks parsed them without a tz, so they took the machine's zone (America/Toronto).
+# Pinned here so the sound/pollutant merge reproduces exactly on any machine.
+sound_tz: America/Toronto
