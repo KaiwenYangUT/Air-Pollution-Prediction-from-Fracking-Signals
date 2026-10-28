@@ -1,0 +1,304 @@
+---
+title: "Modelling"
+author: "Kaiwen Yang"
+output_document: pdf_document
+---
+# Load sound_pollutant_met_data.rdata from sound_pollu_met_merge.Rmd
+```{r}
+load("sound_pollutant_met_data.rdata")
+```
+
+```{r}
+head(w)
+```
+```{r}
+colnames(sound_pollutant_met_data)
+```
+
+```{r}
+# Check the number of missing values in each specified variable
+na_counts <- colSums(is.na(sound_pollutant_met_data[, c("nox", "no", "no2")]))
+print(na_counts)
+
+```
+```{r}
+dim(sound_pollutant_met_data)
+```
+
+```{r}
+colnames(sound_pollutant_met_data)
+```
+
+```{r}
+# Install packages if necessary
+# install.packages("caret")
+# install.packages("xgboost")
+# install.packages("dplyr")
+
+```
+
+```{r}
+library(xgboost)
+library(data.table)
+
+# Step 1: Reformat Column Names
+names(sound_pollutant_met_data) <- gsub(" ", "_", names(sound_pollutant_met_data))
+
+# Updated predictors list after reformatting
+predictors <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq_12.5Hz", 
+  "LZeq_16Hz", "LZeq_20Hz", "LZeq_25Hz", "LZeq_31.5Hz", "LZeq_40Hz", 
+  "LZeq_50Hz", "LZeq_63Hz", "LZeq_80Hz", "LZeq_100Hz", "LZeq_125Hz", 
+  "LZeq_160Hz", "LZeq_200Hz", "LZeq_250Hz", "LZeq_315Hz", "LZeq_400Hz", 
+  "LZeq_500Hz", "LZeq_630Hz", "LZeq_800Hz", "LZeq_1kHz", "LZeq_1.25kHz", 
+  "LZeq_1.6kHz", "LZeq_2kHz", "LZeq_2.5kHz", "LZeq_3.15kHz", "LZeq_4kHz", 
+  "LZeq_5kHz", "LZeq_6.3kHz", "LZeq_8kHz", "LZeq_10kHz", "LZeq_12.5kHz", 
+  "LZeq_16kHz"
+)
+
+response <- "no2"
+```
+
+```{r}
+# Split the dataset
+set.seed(42)
+n <- nrow(sound_pollutant_met_data)
+train_index <- sample(1:n, size = 0.6 * n)
+temp_index <- setdiff(1:n, train_index)
+valid_index <- sample(temp_index, size = 0.5 * length(temp_index))
+test_index <- setdiff(temp_index, valid_index)
+
+train_data <- sound_pollutant_met_data[train_index, ]
+valid_data <- sound_pollutant_met_data[valid_index, ]
+test_data <- sound_pollutant_met_data[test_index, ]
+```
+
+```{r}
+head(train_data)
+```
+```{r}
+filtered_train_data <- train_data %>% 
+  filter(nox <= 50)
+hist(filtered_train_data$nox)
+```
+
+```{r}
+dtrain <- xgb.DMatrix(data = as.matrix(train_data[, predictors]), label = train_data[, response])
+dvalid <- xgb.DMatrix(data = as.matrix(valid_data[, predictors]), label = valid_data[, response])
+dtest <- xgb.DMatrix(data = as.matrix(test_data[, predictors]), label = test_data[, response])
+
+# Define parameter grid
+param_grid <- list(
+  eta = c(0.01, 0.1, 0.2),
+  max_depth = c(6, 8, 10),
+  subsample = c(0.8, 1.0),
+  colsample_bytree = c(0.8, 1.0),
+  gamma = c(0, 0.1, 1)
+)
+
+# Cross-validation for parameter tuning
+best_param <- list()
+best_rmse <- Inf
+
+for (eta in param_grid$eta) {
+  for (max_depth in param_grid$max_depth) {
+    for (subsample in param_grid$subsample) {
+      for (colsample_bytree in param_grid$colsample_bytree) {
+        for (gamma in param_grid$gamma) {
+          params <- list(
+            objective = "reg:squarederror",
+            eta = eta,
+            max_depth = max_depth,
+            subsample = subsample,
+            colsample_bytree = colsample_bytree,
+            gamma = gamma
+          )
+          cv <- xgb.cv(params = params, data = dtrain, nrounds = 200, nfold = 3, 
+                       metrics = "rmse", early_stopping_rounds = 10, verbose = 0)
+          min_rmse <- min(cv$evaluation_log$test_rmse_mean)
+          if (min_rmse < best_rmse) {
+            best_rmse <- min_rmse
+            best_param <- params
+            best_nrounds <- cv$best_iteration
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```{r}
+# Fit the final model
+final_model <- xgb.train(params = best_param, data = dtrain, nrounds = best_nrounds, 
+                         watchlist = list(train = dtrain, valid = dvalid), 
+                         early_stopping_rounds = 10, verbose = 1)
+
+# Evaluate on test set
+preds <- predict(final_model, dtest)
+test_rmse <- sqrt(mean((preds - test_data[, response])^2))
+
+list(best_param = best_param, best_nrounds = best_nrounds, test_rmse = test_rmse)
+
+```
+
+
+```{r}
+# Load necessary libraries
+library(caret)
+library(xgboost)
+set.seed(301)
+
+# Define predictor and response variables, replacing spaces with underscores
+predictors <- c("LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq_12.5Hz", "LZeq_16Hz", "LZeq_20Hz", 
+                "LZeq_25Hz", "LZeq_31.5Hz", "LZeq_40Hz", "LZeq_50Hz", "LZeq_63Hz", "LZeq_80Hz", "LZeq_100Hz", 
+                "LZeq_125Hz", "LZeq_160Hz", "LZeq_200Hz", "LZeq_250Hz", "LZeq_315Hz", "LZeq_400Hz", "LZeq_500Hz", 
+                "LZeq_630Hz", "LZeq_800Hz", "LZeq_1kHz", "LZeq_1.25kHz", "LZeq_1.6kHz", "LZeq_2kHz", "LZeq_2.5kHz", 
+                "LZeq_3.15kHz", "LZeq_4kHz", "LZeq_5kHz", "LZeq_6.3kHz", "LZeq_8kHz", "LZeq_10kHz", "LZeq_12.5kHz", 
+                "LZeq_16kHz")
+response <- "no2"
+
+# Create a copy of the dataset for model processing
+model_data <- sound_pollutant_met_data
+names(model_data) <- gsub(" ", "_", names(model_data))
+
+# Split data into training (60%), validation (20%), and test (20%) sets
+trainIndex <- createDataPartition(model_data[[response]], p = 0.6, list = FALSE)
+train_data <- model_data[trainIndex, ]
+temp_data <- model_data[-trainIndex, ]
+
+validationIndex <- createDataPartition(temp_data[[response]], p = 0.5, list = FALSE)
+validation_data <- temp_data[validationIndex, ]
+test_data <- temp_data[-validationIndex, ]
+
+# Convert datasets to matrix format for XGBoost
+train_matrix <- xgb.DMatrix(data = as.matrix(train_data[, predictors]), label = train_data[[response]])
+validation_matrix <- xgb.DMatrix(data = as.matrix(validation_data[, predictors]), label = validation_data[[response]])
+test_matrix <- xgb.DMatrix(data = as.matrix(test_data[, predictors]), label = test_data[[response]])
+
+# Define training parameters and control grid
+train_control <- trainControl(method = "cv", number = 10, search = "grid")
+
+# Parameter tuning grid for XGBoost
+tune_grid <- expand.grid(
+  max_depth = c(3, 5, 7, 9),
+  nrounds = (1:10) * 50,
+  eta = 0.3,
+  gamma = 0,
+  subsample = 1,
+  min_child_weight = 1,
+  colsample_bytree = 0.8
+)
+
+# Train the XGBoost model
+optimal_xgb_model <- train(
+  form = as.formula(paste(response, "~", paste(predictors, collapse = "+"))),
+  data = train_data,
+  method = "xgbTree",
+  trControl = train_control,
+  tuneGrid = tune_grid,
+  na.action = na.omit
+)
+
+# Evaluate the model on the validation and test data
+validation_pred <- predict(optimal_xgb_model, newdata = validation_data)
+test_pred <- predict(optimal_xgb_model, newdata = test_data)
+
+# Calculate RMSE for validation and test sets
+validation_rmse <- sqrt(mean((validation_pred - validation_data[[response]])^2))
+test_rmse <- sqrt(mean((test_pred - test_data[[response]])^2))
+
+# Output RMSE results
+print(paste("Validation RMSE:", validation_rmse))
+print(paste("Test RMSE:", test_rmse))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+set.seed(42)
+
+# Assuming sound_pollutant_met_data is already loaded
+data <- sound_pollutant_met_data
+
+# Create indices for splitting
+train_index <- createDataPartition(data$no2, p = 0.6, list = FALSE)
+train_data <- data[train_index, ]
+
+remaining_data <- data[-train_index, ]
+validation_index <- createDataPartition(remaining_data$no2, p = 0.375, list = FALSE)  # 0.375 * 0.4 = 0.15 for validation
+valid_data <- remaining_data[validation_index, ]
+test_data <- remaining_data[-validation_index, ]
+
+# Remove any unused data
+rm(data, remaining_data, train_index, validation_index)
+
+```
+
+```{r}
+# Define predictor variables
+predictors <- c("LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq 12.5Hz", "LZeq 16Hz", "LZeq 20Hz", 
+                "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", 
+                "LZeq 125Hz", "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", "LZeq 500Hz", 
+                "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", 
+                "LZeq 3.15kHz", "LZeq 4kHz", "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+                "LZeq 16kHz")
+
+# Convert data frames to matrix form for xgboost
+train_matrix <- xgb.DMatrix(data = as.matrix(train_data[, predictors]), label = train_data$no2)
+valid_matrix <- xgb.DMatrix(data = as.matrix(valid_data[, predictors]), label = valid_data$no2)
+test_matrix <- xgb.DMatrix(data = as.matrix(test_data[, predictors]))
+
+```
+
+```{r}
+# Parameter grid for tuning
+param_grid <- list(
+  max_depth = c(6, 8, 10),
+  eta = c(0.1, 0.05, 0.01),
+  subsample = c(0.7, 0.8),
+  colsample_bytree = c(0.7, 0.8)
+)
+
+# Define number of rounds and early stopping criteria
+nrounds <- 1000
+early_stopping <- 10
+
+# Training the model and tuning using validation data
+best_model <- xgb.cv(
+  params = param_grid,
+  data = train_matrix,
+  nrounds = nrounds,
+  nfold = 5,
+  objective = "reg:squarederror",
+  metrics = "rmse",
+  early_stopping_rounds = early_stopping,
+  maximize = FALSE,
+  watchlist = list(validation = valid_matrix)
+)
+
+```
+
+
+
+
+
+
+

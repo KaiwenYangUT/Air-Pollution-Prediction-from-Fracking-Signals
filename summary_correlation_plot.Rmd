@@ -1,0 +1,1728 @@
+---
+title: "Summary Tables and Correlation Plot"
+author: "Kaiwen Yang"
+output_document: html_document
+---
+# Load sound_pollutant_met_data.rdata from sound_pollu_met_merge.Rmd
+```{r}
+load("sound_pollutant_met_data.rdata")
+```
+
+```{r}
+head(sound_pollutant_met_data)
+```
+
+# Summary Table
+## Sound Frequencies
+### Variables in the Replicate Frequency Table, our data missing "LAleq"
+```{r}
+# Define the variables of interest
+variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LAleq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "no2"
+)
+
+# Check which variables are missing from the dataframe
+missing_variables <- variables_of_interest[!variables_of_interest %in% colnames(sound_pollutant_met_data)]
+
+# Print the missing variables
+print(missing_variables)
+```
+
+### Interested Sound Frequencies
+```{r}
+# Define the variables of interest without LAleq
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+```
+
+### Frequency Table
+```{r}
+frequency_summary_data <- data.frame(
+  Variable = frequency_variables_of_interest,
+  Min = NA,
+  First_Qu = NA,
+  Median = NA,
+  Mean = NA,
+  Third_Qu = NA,
+  Max = NA
+)
+
+# Step 5: For the variables that exist in the dataset, calculate the summary statistics
+for (var in frequency_variables_of_interest) {
+  if (var %in% colnames(sound_pollutant_met_data)) {
+    summary_values <- summary(sound_pollutant_met_data[[var]])
+    frequency_summary_data[frequency_summary_data$Variable == var, "Min"] <- summary_values["Min."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "First_Qu"] <- summary_values["1st Qu."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Median"] <- summary_values["Median"]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Mean"] <- summary_values["Mean"]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Third_Qu"] <- summary_values["3rd Qu."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Max"] <- summary_values["Max."]
+  }
+}
+
+# Step 6: Rename columns to fix the issue
+colnames(frequency_summary_data) <- c("Variable", "Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max")
+
+# Step 7: Print the summary table using kable
+library(knitr)
+library(kableExtra)
+
+table_html <- kable(frequency_summary_data, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# Save the table as an HTML file
+# save_kable(table_html, "frequency_summary_table.html")
+
+```
+
+## Pollutant
+```{r}
+# Define the pollutant variables of interest with descriptive names and units
+pollutant_variables_of_interest <- c(
+  "Methane (CH4, ppb)" = "ch4",
+  "Carbon Dioxide (CO2, ppm)" = "co2_ppm",
+  "Hydrogen Sulfide (H2S, ppb)" = "h2s",
+  "Sulfur Dioxide (SO2, ppb)" = "so2",
+  "Carbon Monoxide (CO, ppb)" = "co",
+  "Ozone (O3, ppb)" = "o3",
+  "Nitrogen Oxide (NOx, ppb)" = "nox",
+  "Nitric Oxide (NO, ppb)" = "no",
+  "Nitrogen Dioxide (NO2, ppb)" = "no2"
+)
+
+# Create a summary data frame for pollutant variables with descriptive names
+pollu_summary_table <- data.frame(
+  Variable = names(pollutant_variables_of_interest),
+  Min = NA,
+  First_Qu = NA,
+  Median = NA,
+  Mean = NA,
+  Third_Qu = NA,
+  Max = NA
+)
+
+# Calculate the summary statistics for each pollutant variable
+for (desc_name in names(pollutant_variables_of_interest)) {
+  var <- pollutant_variables_of_interest[[desc_name]]
+  if (var %in% colnames(sound_pollutant_met_data)) {
+    summary_values <- summary(sound_pollutant_met_data[[var]])
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "Min"] <- summary_values["Min."]
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "First_Qu"] <- summary_values["1st Qu."]
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "Median"] <- summary_values["Median"]
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "Mean"] <- summary_values["Mean"]
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "Third_Qu"] <- summary_values["3rd Qu."]
+    pollu_summary_table[pollu_summary_table$Variable == desc_name, "Max"] <- summary_values["Max."]
+  }
+}
+
+# Rename columns to fix the issue
+colnames(pollu_summary_table) <- c("Variable", "Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max")
+
+# Print the summary table using kable
+library(knitr)
+library(kableExtra)
+
+table_html <- kable(pollu_summary_table, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# Save the table as an HTML file
+save_kable(table_html, "pollutant_summary_table.html")
+```
+
+## Meteorological Factor
+```{r}
+# Define the meteorological variables of interest with descriptive names
+met_variables_of_interest <- c(
+  "Wind Direction (degrees)" = "wdr_deg",
+  "Wind Speed (m/s)" = "wsp_ms",
+  "Temperature (F)" = "temp_f",
+  "Relative Humidity (%)" = "relh_percent",
+  "Solar Radiation (W/m²)" = "solr_W_m2",
+  "Pressure (altitude corrected)" = "pressure_altcorr",
+  "Rainfall (mm)" = "rain",
+  "Water Vapor Mixing Ratio (g/kg)" = "water_vapor_mr_g_kg"
+)
+
+# Create a summary data frame for meteorological variables with descriptive names
+met_summary_table <- data.frame(
+  Variable = names(met_variables_of_interest),
+  Min = NA,
+  First_Qu = NA,
+  Median = NA,
+  Mean = NA,
+  Third_Qu = NA,
+  Max = NA
+)
+
+# Calculate the summary statistics for each meteorological variable
+for (desc_name in names(met_variables_of_interest)) {
+  var <- met_variables_of_interest[[desc_name]]
+  if (var %in% colnames(sound_pollutant_met_data)) {
+    summary_values <- summary(sound_pollutant_met_data[[var]])
+    met_summary_table[met_summary_table$Variable == desc_name, "Min"] <- summary_values["Min."]
+    met_summary_table[met_summary_table$Variable == desc_name, "First_Qu"] <- summary_values["1st Qu."]
+    met_summary_table[met_summary_table$Variable == desc_name, "Median"] <- summary_values["Median"]
+    met_summary_table[met_summary_table$Variable == desc_name, "Mean"] <- summary_values["Mean"]
+    met_summary_table[met_summary_table$Variable == desc_name, "Third_Qu"] <- summary_values["3rd Qu."]
+    met_summary_table[met_summary_table$Variable == desc_name, "Max"] <- summary_values["Max."]
+  }
+}
+
+# Rename columns to fix the issue
+colnames(met_summary_table) <- c("Variable", "Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max")
+
+# Print the summary table using kable
+library(knitr)
+library(kableExtra)
+
+table_html <- kable(met_summary_table, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# Save the table as an HTML file
+save_kable(table_html, "met_summary_table.html")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Correlation Heat Map (No filter applied on temp and wind speed)
+```{r}
+# install.packages("corrplot")
+# install.packages("Hmisc")
+
+library(ggcorrplot)
+library(ggplot2)
+library(Hmisc)
+library(corrplot)
+
+```
+## Sound Frequency
+```{r}
+head(sound_pollutant_met_data)
+```
+
+```{r}
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+frequency_filtered_data <- sound_pollutant_met_data[, frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+head(frequency_filtered_data)
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+# png("frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 1: Compute the correlation matrix
+frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 0.5,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Frequency Correlation Heat Map", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+# dev.off()
+```
+
+### Actually, there are negative correlations but at maximum of [value redacted] 
+```{r}
+# Find the positions of negative values in the matrix
+negative_values <- which(frequency_cor_matrix < 0, arr.ind = TRUE)
+
+# Check if there are any negative values
+if (nrow(negative_values) > 0) {
+  print("Negative values and their corresponding pairs (row, column):")
+  for (i in 1:nrow(negative_values)) {
+    row <- negative_values[i, 1]
+    col <- negative_values[i, 2]
+    value <- frequency_cor_matrix[row, col]
+    cat("Row:", row, "Column:", col, "Value:", value, "\n")
+  }
+} else {
+  print("All values in frequency_cor_matrix are non-negative.")
+}
+
+```
+
+#### Question: maybe set cor < 0 to 0?
+```{r}
+# Set all negative values in the correlation matrix to 0
+frequency_cor_matrix[frequency_cor_matrix < 0] <- 0
+```
+
+#### Corr Heat map after negative value adjustment
+```{r}
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 0.5,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+#png("frequency_correlation_greater_0.9_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.9", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+#dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.85
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("frequency_correlation_greater_0.85_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+eight_point_five_greater_matrix <- frequency_cor_matrix
+eight_point_five_greater_matrix[eight_point_five_greater_matrix < 0.85] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(eight_point_five_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.85", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.8
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("frequency_correlation_greater_0.80_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+eight_greater_matrix <- frequency_cor_matrix
+eight_greater_matrix[eight_greater_matrix < 0.8] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(eight_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.80", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.75
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("frequency_correlation_greater_0.75_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+seven_point_five_greater_matrix <- frequency_cor_matrix
+seven_point_five_greater_matrix[seven_point_five_greater_matrix < 0.75] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(seven_point_five_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.75", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.70
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("frequency_correlation_greater_0.70_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+seven_greater_matrix <- frequency_cor_matrix
+seven_greater_matrix[seven_greater_matrix < 0.70] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(seven_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.70", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+### Correlation Heatmap of cor >= 0.6
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("frequency_correlation_greater_0.60_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+six_greater_matrix <- frequency_cor_matrix
+six_greater_matrix[six_greater_matrix < 0.60] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(six_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Frequency Heat Map Highlighting Correlations ≥ 0.60", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+## Nox and Sound Frequency
+```{r}
+nox_frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "nox", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_frequency_filtered_data <- sound_pollutant_met_data[, nox_frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+# Save the plot as a PNG file
+png("nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 1: Compute the correlation matrix
+nox_frequency_cor_matrix <- rcorr(as.matrix(nox_frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(nox_frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 0.5,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Nox and Frequency Corr Heat Map", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Nox and Frequency Heat Map Highlighting Correlations ≥ 0.9", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+### Correlation Heatmap of cor < 0
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("nox_frequency_correlation_smaller_0_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix > 0] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("red", "white"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Nox and Frequency Heat Map Highlighting Correlations < 0", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+### Correlation Heatmap of cor <= -0.3
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("nox_frequency_correlation_smaller_-0.3_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix > - 0.3] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("red", "white"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Nox and Frequency Heat Map Highlighting Correlations <= -0.3", line = 3)  # Adjust `line` as needed
+
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+## Nox and Meteorological Factors
+```{r}
+# Step 1: Select only the columns of interest
+nox_met_variables_of_interest <- c("wdr_deg", "wsp_ms", "temp_f", "relh_percent", 
+                                                "solr_W_m2", "pressure_altcorr", "rain", 
+                                                "water_vapor_mr_g_kg", "nox", "no2")
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_met_filtered_data <- sound_pollutant_met_data[, nox_met_variables_of_interest, drop=FALSE]
+
+# Rename the columns with more descriptive names
+colnames(nox_met_filtered_data) <- c("Wind Direction (degrees)", 
+                                "Wind Speed (m/s)", 
+                                "Temperature (F)", 
+                                "Relative Humidity (%)", 
+                                "Solar Radiation (W/m²)", 
+                                "Pressure (altitude corrected)", 
+                                "Rainfall (mm)", 
+                                "Water Vapor Mixing Ratio (g/kg)", 
+                                "NOx", 
+                                "NO2")
+
+
+# Step 2: Compute the correlation matrix for the selected columns
+met_nox_cor_matrix <- rcorr(as.matrix(nox_met_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+
+
+```
+
+```{r}
+# Save the plot as a PNG file
+png("met_nox_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 3: Plot the correlation matrix using corrplot
+corrplot(met_nox_cor_matrix, 
+         method = "circle",         # Use circle method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white", "purple"))(200),  # Custom color palette
+         tl.col = "black",          # Color of text labels
+         tl.cex = 0.8,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)            # Indicate that it is a correlation matrix
+
+# Add a title
+title("Met and NOx Correlation Heat Map for Met and NOx Variables", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+### Correlation Heatmap of cor <= -0.3
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("met_nox_correlation_smaller_-0.3_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- met_nox_cor_matrix
+nine_greater_matrix[nine_greater_matrix > - 0.3] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("red", "white"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Met and NOx Heat Map Highlighting Correlations <= -0.3", line = 2.5)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor <= -0.4
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("met_nox_correlation_smaller_-0.4_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- met_nox_cor_matrix
+nine_greater_matrix[nine_greater_matrix > - 0.4] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("red", "white"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Met and NOx Heat Map Highlighting Correlations <= -0.4", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor <= -0.5
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("met_nox_correlation_smaller_-0.5_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- met_nox_cor_matrix
+nine_greater_matrix[nine_greater_matrix > - 0.5] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("red", "white"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 0.6,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Met and NOx  Heat Map Highlighting Correlations <= -0.5", line = 3)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+# Correlation Heat Map (temp <= 70 & wind speed <= 7, Pearson and Spearman Corr included)
+```{r}
+sound_low_temp<-sound_pollutant_met_data[sound_pollutant_met_data$temp_f<=70,]
+sound_low_temp_ws<-sound_low_temp[sound_low_temp$wsp_ms<=7,]
+```
+
+## Pearson Corr
+### Sound
+```{r}
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+frequency_filtered_data <- sound_low_temp_ws[, frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 1: Compute the correlation matrix
+frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Pearson Frequency Heatmap for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Pearson Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Pearson Frequency Heatmap with Coefficient ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1.2)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+### Nox and Sound Frequency
+```{r}
+nox_frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "nox", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_frequency_filtered_data <- sound_low_temp_ws[, nox_frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+# Save the plot as a PNG file
+png("pearson_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 1: Compute the correlation matrix
+nox_frequency_cor_matrix <- rcorr(as.matrix(nox_frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(nox_frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Pearson Nox and Frequency Corr Heat Map for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", line = 2, cex.main = 1)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Pearson Nox and Frequency Corr Map Highlighting Correlations ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Pearson Nox and Frequency Corr Map With Coefficient ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+
+## Spearman Corr
+### Sound
+```{r}
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+frequency_filtered_data <- sound_low_temp_ws[, frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 1: Compute the correlation matrix
+frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Spearman Frequency Correlation Heatmap for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Spearman Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Spearman Frequency Heat Map with Coefficient ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+### Nox and Sound Frequency
+```{r}
+nox_frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "nox", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_frequency_filtered_data <- sound_low_temp_ws[, nox_frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+# Save the plot as a PNG file
+png("spearman_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 1: Compute the correlation matrix
+nox_frequency_cor_matrix <- rcorr(as.matrix(nox_frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(nox_frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Spearman Nox and Frequency Corr Heat Map for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", line = 2, cex.main = 1)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Spearman Nox and Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Spearman Frequency Heat Map with Coefficient ≥ 0.9 for Low Temperature(<= 70F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+# Correlation Heat Map (Subset temp > 100 & wind speed <= 7, Pearson and Spearman Corr included))
+```{r}
+sound_high_temp<-sound_pollutant_met_data[sound_pollutant_met_data$temp_f>100,]
+sound_high_temp_ws<-sound_low_temp[sound_low_temp$wsp_ms<=7,]
+```
+
+## Pearson Corr
+### Sound
+```{r}
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+frequency_filtered_data <- sound_high_temp_ws[, frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 1: Compute the correlation matrix
+frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Pearson Frequency Heatmap for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Pearson Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Pearson Frequency Heatmap with Coefficient ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1.2)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+### Nox and Sound Frequency
+```{r}
+nox_frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "nox", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_frequency_filtered_data <- sound_high_temp_ws[, nox_frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+# Save the plot as a PNG file
+png("pearson_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 1: Compute the correlation matrix
+nox_frequency_cor_matrix <- rcorr(as.matrix(nox_frequency_filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(nox_frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Pearson Nox and Frequency Corr Heat Map for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", line = 2, cex.main = 1)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Pearson Nox and Frequency Corr Map Highlighting Correlations ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("pearson_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Pearson Nox and Frequency Corr Map With Coefficient ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+
+## Spearman Corr
+### Sound
+```{r}
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+frequency_filtered_data <- sound_high_temp_ws[, frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+# Step 1: Compute the correlation matrix
+frequency_cor_matrix <- rcorr(as.matrix(frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         cl.lim = c(0, 1),          # Set color legend limits from 0 to 1
+         addgrid.col = "grey",        
+         is.corr = FALSE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Spearman Frequency Correlation Heatmap for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Spearman Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_coefficient_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Spearman Frequency Heat Map with Coefficient ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+
+
+### Nox and Sound Frequency
+```{r}
+nox_frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "nox", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+nox_frequency_filtered_data <- sound_high_temp_ws[, nox_frequency_variables_of_interest, drop=FALSE]
+```
+
+```{r}
+# Save the plot as a PNG file
+png("spearman_subset_nox_frequency_correlation_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 1: Compute the correlation matrix
+nox_frequency_cor_matrix <- rcorr(as.matrix(nox_frequency_filtered_data), type = "spearman")$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(nox_frequency_cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only lower triangle
+         col = colorRampPalette(c("red","white",  "purple"))(200),  # Custom color palette adjusted for 0-1 range
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 1,              # Size of text labels
+         tl.srt = 45,               # Rotation of text labels
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)           # Indicate that the matrix has no negative values
+
+# Add a title
+title("Spearman Nox and Frequency Corr Heat Map for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", line = 2, cex.main = 1)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+### Correlation Heatmap of cor >= 0.9
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_nox_frequency_correlation_greater_0.90_heatmap.png", width = 800, height = 800)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- 0  # Only values >= 0.9 will be displayed
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         method = "circle",           # Use circle method
+         type = "lower",              # Show only lower triangle
+         col = colorRampPalette(c("white", "purple"))(200),  # Color palette for highlighted circles
+         tl.col = "black",            # Text label color
+         tl.cex = 1,                # Text label size
+         tl.srt = 45,                 # Text label rotation
+         cl.cex = 0.8,                # Color legend text size
+         cl.lim = c(0, 1),          # Set color legend limits from 0.9 to 1
+         na.label = " ",              # Hide non-highlighted cells
+         addgrid.col = "grey",        
+         is.corr = FALSE)             # Matrix does not contain negative values
+
+# Add a title
+title("Spearman Nox and Frequency Heat Map Highlighting Correlations ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", cex.main = 1, line = 2)  # Adjust `line` as needed
+
+# Close the PNG device to save the file
+dev.off()
+```
+
+```{r warning=FALSE}
+# Save the plot as a PNG file
+png("spearman_subset_coefficient_nox_frequency_correlation_greater_0.90_heatmap.png", width = 1000, height = 1000)  # Set desired dimensions
+
+
+# Step 2: Set correlations below 0.9 to NA to hide them in the plot
+nine_greater_matrix <- nox_frequency_cor_matrix
+nine_greater_matrix[nine_greater_matrix < 0.9 & nine_greater_matrix > - 0.9] <- NA  # Only values >= 0.9 will be displayed
+
+
+# Step 3: Plot the highlighted correlation matrix using corrplot
+corrplot(nine_greater_matrix, 
+         type = "lower",               # Show only lower triangle
+         col = colorRampPalette(c("white", "white"))(200),  # Color palette for highlighted circles
+         cl.pos = "n",
+         tl.col = "black",             # Text label color
+         tl.cex = 1,                 # Text label size
+         tl.srt = 45,                  # Text label rotation
+         cl.cex = 0.8,                 # Color legend text size
+         cl.lim = c(0, 1),             # Set color legend limits
+         na.label = " ",               # Hide non-highlighted cells
+         addgrid.col = "grey",         # Grid color
+         is.corr = FALSE,              # Matrix does not contain negative values
+         addCoef.col = "black",        # Color for coefficients
+         number.cex = 1,             # Font size for coefficients
+         number.digits = 2)            # Display coefficients to 2 decimal places
+
+# Add a title
+title("Spearman Frequency Heat Map with Coefficient ≥ 0.9 for Low Temperature(> 100F) and\n Low Wind Speed (<= 7m/s) Conditions", 
+      line = 2, 
+      cex.main = 1)  # Adjust font size for title
+
+# Close the PNG device to save the file
+dev.off()
+```

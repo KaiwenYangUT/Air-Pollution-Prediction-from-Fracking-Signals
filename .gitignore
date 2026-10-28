@@ -1,0 +1,52 @@
+# DATA — never commit (data lives outside the repo; see config.example.yml)
+*.csv
+*.tsv
+*.txt
+*.xls
+*.xlsx
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.sav
+*.dta
+*.sqlite
+*.db
+*.json
+*.zip
+*.gz
+*.7z
+*.rds
+*.rdata
+*.RData
+*.Rdata
+*.rda
+Raw/
+data/
+
+# Rendered outputs can embed data values
+*.html
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+*_files/
+*_cache/
+outputs/
+archive/private/
+
+# Local config, R session and OS files
+config.yml
+.env
+.Rhistory
+.RData
+.Rproj.user/
+.DS_Store
+Rplots.pdf
+.claude/settings.local.json
+
+# Exceptions (allowed through .gitignore and the pre-commit hook)
+!renv.lock
+!renv/settings.json
+!docs/slides/*.pdf

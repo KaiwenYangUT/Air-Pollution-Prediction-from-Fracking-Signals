@@ -1,0 +1,628 @@
+---
+title: "STA497 9.24 Meeting Task"
+author: Kaiwen Yang
+output: pdf_document
+---
+### Stack
+```{r, warning=FALSE}
+# Load required libraries
+library(data.table)
+
+# Set the working directory to the STA497 folder
+setwd("./Raw")
+# if access from google drive, within "code" folder
+# setwd("../data/final data/sound/Raw")
+
+# Get a list of all LNM folders
+folders <- list.dirs(".", recursive = FALSE, full.names = TRUE)
+
+# Initialize empty lists to store data for the different types of files
+logged_spectra_list <- list()
+total_spectra_list <- list()
+logged_bb_list <- list()
+total_bb_list <- list()
+logged_ln_list <- list()
+total_ln_list <- list()
+
+# Initialize vectors to keep track of missing or empty files
+missing_logged_spectra <- c()
+missing_total_spectra <- c()
+missing_logged_bb <- c()
+missing_total_bb <- c()
+missing_logged_ln <- c()
+missing_total_ln <- c()
+
+empty_logged_spectra <- c()
+empty_total_spectra <- c()
+empty_logged_bb <- c()
+empty_total_bb <- c()
+empty_logged_ln <- c()
+empty_total_ln <- c()
+
+# Iterate through all folders
+for (folder in folders) {
+  # Extract folder name
+  folder_name <- basename(folder)
+  
+  # Construct file paths for Logged and Total files
+  logged_spectra_file <- file.path(folder, paste0(folder_name, "_LoggedSpectra.txt"))
+  total_spectra_file <- file.path(folder, paste0(folder_name, "_TotalSpectra.txt"))
+  
+  logged_bb_file <- file.path(folder, paste0(folder_name, "_LoggedBB.txt"))
+  total_bb_file <- file.path(folder, paste0(folder_name, "_TotalBB.txt"))
+  
+  logged_ln_file <- file.path(folder, paste0(folder_name, "_LoggedLN.txt"))
+  total_ln_file <- file.path(folder, paste0(folder_name, "_TotalLN.txt"))
+  
+  # Check and read LoggedSpectra files
+  if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) > 0) {
+    logged_spectra_data <- fread(logged_spectra_file, fill = TRUE)
+    logged_spectra_list[[length(logged_spectra_list) + 1]] <- logged_spectra_data
+  } else if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) == 0) {
+    empty_logged_spectra <- c(empty_logged_spectra, folder_name)
+  } else {
+    missing_logged_spectra <- c(missing_logged_spectra, folder_name)
+  }
+  
+  # Check and read TotalSpectra files
+  if (file.exists(total_spectra_file)) {
+    if (file.size(total_spectra_file) > 0) {
+      total_spectra_data <- fread(total_spectra_file, fill = TRUE)
+      total_spectra_list[[length(total_spectra_list) + 1]] <- total_spectra_data
+    } else {
+      empty_total_spectra <- c(empty_total_spectra, folder_name)
+    }
+  } else {
+    missing_total_spectra <- c(missing_total_spectra, folder_name)
+  }
+  
+  # Check and read LoggedBB files
+  if (file.exists(logged_bb_file) && file.size(logged_bb_file) > 0) {
+    logged_bb_data <- fread(logged_bb_file, fill = TRUE)
+    logged_bb_list[[length(logged_bb_list) + 1]] <- logged_bb_data
+  } else if (file.exists(logged_bb_file) && file.size(logged_bb_file) == 0) {
+    empty_logged_bb <- c(empty_logged_bb, folder_name)
+  } else {
+    missing_logged_bb <- c(missing_logged_bb, folder_name)
+  }
+  
+  # Check and read TotalBB files
+  if (file.exists(total_bb_file)) {
+    if (file.size(total_bb_file) > 0) {
+      total_bb_data <- fread(total_bb_file, fill = TRUE)
+      total_bb_list[[length(total_bb_list) + 1]] <- total_bb_data
+    } else {
+      empty_total_bb <- c(empty_total_bb, folder_name)
+    }
+  } else {
+    missing_total_bb <- c(missing_total_bb, folder_name)
+  }
+  
+  # Check and read LoggedLN files
+  if (file.exists(logged_ln_file) && file.size(logged_ln_file) > 0) {
+    logged_ln_data <- fread(logged_ln_file, fill = TRUE)
+    logged_ln_list[[length(logged_ln_list) + 1]] <- logged_ln_data
+  } else if (file.exists(logged_ln_file) && file.size(logged_ln_file) == 0) {
+    empty_logged_ln <- c(empty_logged_ln, folder_name)
+  } else {
+    missing_logged_ln <- c(missing_logged_ln, folder_name)
+  }
+  
+  # Check and read TotalLN files
+  if (file.exists(total_ln_file)) {
+    if (file.size(total_ln_file) > 0) {
+      total_ln_data <- fread(total_ln_file, fill = TRUE)
+      total_ln_list[[length(total_ln_list) + 1]] <- total_ln_data
+    } else {
+      empty_total_ln <- c(empty_total_ln, folder_name)
+    }
+  } else {
+    missing_total_ln <- c(missing_total_ln, folder_name)
+  }
+}
+
+# Stack all the data for each group
+if (length(logged_spectra_list) > 0) {
+  logged_spectra_combined <- rbindlist(logged_spectra_list, fill = TRUE)
+  save(logged_spectra_combined, file = "../009_097_logged_spectra.rdata")
+}
+
+if (length(total_spectra_list) > 0) {
+  total_spectra_combined <- rbindlist(total_spectra_list, fill = TRUE)
+  save(total_spectra_combined, file = "../009_097_total_spectra.rdata")
+}
+
+if (length(logged_bb_list) > 0) {
+  logged_bb_combined <- rbindlist(logged_bb_list, fill = TRUE)
+  save(logged_bb_combined, file = "../009_097_logged_bb.rdata")
+}
+
+if (length(total_bb_list) > 0) {
+  total_bb_combined <- rbindlist(total_bb_list, fill = TRUE)
+  save(total_bb_combined, file = "../009_097_total_bb.rdata")
+}
+
+if (length(logged_ln_list) > 0) {
+  logged_ln_combined <- rbindlist(logged_ln_list, fill = TRUE)
+  save(logged_ln_combined, file = "../009_097_logged_ln.rdata")
+}
+
+if (length(total_ln_list) > 0) {
+  total_ln_combined <- rbindlist(total_ln_list, fill = TRUE)
+  save(total_ln_combined, file = "../009_097_total_ln.rdata")
+}
+
+# Report missing or empty files
+if (length(missing_logged_spectra) > 0) {
+  cat("No logged spectra in folders:\n")
+  print(missing_logged_spectra)
+} else {
+  cat("All folders have LoggedSpectra.txt files.\n")
+}
+
+if (length(empty_logged_spectra) > 0) {
+  cat("Empty LoggedSpectra files in folders:\n")
+  print(empty_logged_spectra)
+} else {
+  cat("No empty LoggedSpectra files.\n")
+}
+
+if (length(missing_total_spectra) > 0) {
+  cat("No total spectra in folders:\n")
+  print(missing_total_spectra)
+} else {
+  cat("All folders have TotalSpectra.txt files.\n")
+}
+
+if (length(empty_total_spectra) > 0) {
+  cat("Empty TotalSpectra files in folders:\n")
+  print(empty_total_spectra)
+} else {
+  cat("No empty TotalSpectra files.\n")
+}
+
+if (length(missing_logged_bb) > 0) {
+  cat("No logged BB in folders:\n")
+  print(missing_logged_bb)
+} else {
+  cat("All folders have LoggedBB.txt files.\n")
+}
+
+if (length(empty_logged_bb) > 0) {
+  cat("Empty LoggedBB files in folders:\n")
+  print(empty_logged_bb)
+} else {
+  cat("No empty LoggedBB files.\n")
+}
+
+if (length(missing_total_bb) > 0) {
+  cat("No total BB in folders:\n")
+  print(missing_total_bb)
+} else {
+  cat("All folders have TotalBB.txt files.\n")
+}
+
+if (length(empty_total_bb) > 0) {
+  cat("Empty TotalBB files in folders:\n")
+  print(empty_total_bb)
+} else {
+  cat("No empty TotalBB files.\n")
+}
+
+if (length(missing_logged_ln) > 0) {
+  cat("No logged LN in folders:\n")
+  print(missing_logged_ln)
+} else {
+  cat("All folders have LoggedLN.txt files.\n")
+}
+
+if (length(empty_logged_ln) > 0) {
+  cat("Empty LoggedLN files in folders:\n")
+  print(empty_logged_ln)
+} else {
+  cat("No empty LoggedLN files.\n")
+}
+
+if (length(missing_total_ln) > 0) {
+  cat("No total LN in folders:\n")
+  print(missing_total_ln)
+} else {
+  cat("All folders have TotalLN.txt files.\n")
+}
+
+if (length(empty_total_ln) > 0) {
+  cat("Empty TotalLN files in folders:\n")
+  print(empty_total_ln)
+} else {
+  cat("No empty TotalLN files.\n")
+}
+
+```
+### Data in total_lb could be found in total_spectra
+
+```{r}
+load("009_097_logged_spectra.rdata")
+
+head(logged_spectra_combined)
+```
+
+```{r}
+
+load("009_097_logged_bb.rdata")
+
+head(logged_bb_combined)
+```
+
+```{r}
+# Load the 009_097_total_spectra.rdata file
+load("009_097_total_spectra.rdata")
+
+# Display the head of the loaded data
+head(total_spectra_combined)
+
+```
+
+
+```{r}
+load("009_097_total_bb.rdata")
+
+head(total_bb_combined)
+```
+```{r}
+
+load("009_097_logged_ln.rdata")
+
+head(logged_ln_combined)
+```
+
+```{r}
+load("009_097_total_ln.rdata")
+
+head(total_ln_combined)
+```
+
+
+### Logged Spectra
+```{r}
+# Define the path to the file
+file_path <- "./Raw/LNM008/LNM008_TotalSpectra_LoggedSpectra.txt"
+
+# Read the .txt file into R
+data_logged_spectra_008 <- read.table(file_path, header = TRUE, sep = "\t")
+
+# View the first few rows of the data
+head(data_logged_spectra_008)
+
+```
+```{r}
+# Define the path to the file
+file_path <- "./Raw/LNM009/LNM009_LoggedSpectra.txt"
+
+# Read the .txt file into R
+data_logged_spectra_009 <- read.table(file_path, header = TRUE, sep = "\t")
+
+# View the first few rows of the data
+head(data_logged_spectra_009)
+
+```
+
+
+
+### Logged BB
+```{r}
+# Define the path to the file
+file_path <- "./Raw/LNM008/LNM008_TotalSpectra_LoggedBB.txt"
+
+# Read the .txt file into R
+data_bb_008 <- read.table(file_path, header = TRUE, sep = "\t")
+
+# View the first few rows of the data
+head(data_bb_008)
+```
+```{r}
+# Define the path to the file
+file_path <- "./Raw/LNM009/LNM009_LoggedBB.txt"
+
+# Read the .txt file into R
+data_bb_009 <- read.table(file_path, header = TRUE, sep = "\t")
+
+# View the first few rows of the data
+head(data_bb_009)
+```
+
+### Logged LN
+```{r}
+# Define the path to the file
+file_path <- "./Raw/LNM008/LNM008_TotalSpectra_LoggedLN.txt"
+
+# Read the .txt file into R
+data_bb_008 <- read.table(file_path, header = TRUE, sep = "\t")
+
+# View the first few rows of the data
+head(data_bb_008)
+```
+
+
+```{r}
+# Load required libraries
+library(data.table)
+
+# Set the working directory to the STA497 folder
+setwd("./Raw")
+
+# Get a list of all LNM folders
+folders <- list.dirs(".", recursive = FALSE, full.names = TRUE)
+
+# Initialize empty lists to store data for both LoggedSpectra and TotalSpectra
+logged_spectra_list <- list()
+total_spectra_list <- list()
+
+# Initialize vectors to keep track of missing or empty files
+missing_total_spectra <- c()
+empty_logged_spectra <- c()
+empty_total_spectra <- c()
+
+# Iterate through all folders
+for (folder in folders) {
+  # Extract folder name
+  folder_name <- basename(folder)
+  
+  # Construct file paths for LoggedSpectra.txt and TotalSpectra.txt
+  logged_spectra_file <- file.path(folder, paste0(folder_name, "_LoggedSpectra.txt"))
+  total_spectra_file <- file.path(folder, paste0(folder_name, "_TotalSpectra.txt"))
+  
+  # Check if the LoggedSpectra.txt file exists and has a non-zero size
+  if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) > 0) {
+    logged_spectra_data <- fread(logged_spectra_file, fill = TRUE)
+    logged_spectra_list[[length(logged_spectra_list) + 1]] <- logged_spectra_data
+  } else if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) == 0) {
+    # If the file exists but has a size of 0, record it
+    empty_logged_spectra <- c(empty_logged_spectra, folder_name)
+  }
+  
+  # Check if the TotalSpectra.txt file exists and has a non-zero size
+  if (file.exists(total_spectra_file)) {
+    if (file.size(total_spectra_file) > 0) {
+      total_spectra_data <- fread(total_spectra_file, fill = TRUE)
+      total_spectra_list[[length(total_spectra_list) + 1]] <- total_spectra_data
+    } else {
+      # If TotalSpectra.txt exists but is empty, record it
+      empty_total_spectra <- c(empty_total_spectra, folder_name)
+    }
+  } else {
+    # If TotalSpectra.txt is missing, append the folder name to the missing list
+    missing_total_spectra <- c(missing_total_spectra, folder_name)
+  }
+}
+
+# Stack all the LoggedSpectra data together
+if (length(logged_spectra_list) > 0) {
+  logged_spectra_combined <- rbindlist(logged_spectra_list, fill = TRUE)
+  save(logged_spectra_combined, file = "../009_097_logged_spectra.rdata")
+}
+
+# Stack all the TotalSpectra data together
+if (length(total_spectra_list) > 0) {
+  total_spectra_combined <- rbindlist(total_spectra_list, fill = TRUE)
+  save(total_spectra_combined, file = "../009_097_total_spectra.rdata")
+}
+
+# Report missing or empty files
+if (length(missing_total_spectra) > 0) {
+  cat("No total spectra in folders:\n")
+  print(missing_total_spectra)
+} else {
+  cat("All folders have TotalSpectra.txt files.\n")
+}
+
+if (length(empty_logged_spectra) > 0) {
+  cat("Empty LoggedSpectra files in folders:\n")
+  print(empty_logged_spectra)
+} else {
+  cat("No empty LoggedSpectra files.\n")
+}
+
+if (length(empty_total_spectra) > 0) {
+  cat("Empty TotalSpectra files in folders:\n")
+  print(empty_total_spectra)
+} else {
+  cat("No empty TotalSpectra files.\n")
+}
+
+```
+
+```{r, warning=FALSE}
+# Load required libraries
+library(data.table)
+
+# Set the working directory to the STA497 folder
+setwd("./Raw")
+
+# Get a list of all LNM folders
+folders <- list.dirs(".", recursive = FALSE, full.names = TRUE)
+
+# Initialize empty lists to store data for the different types of files
+logged_spectra_list <- list()
+total_spectra_list <- list()
+logged_bb_list <- list()
+total_bb_list <- list()
+logged_ln_list <- list()
+total_ln_list <- list()
+
+# Initialize vectors to keep track of missing or empty files
+missing_total_spectra <- c()
+missing_total_bb <- c()
+missing_total_ln <- c()
+
+empty_logged_spectra <- c()
+empty_total_spectra <- c()
+empty_logged_bb <- c()
+empty_total_bb <- c()
+empty_logged_ln <- c()
+empty_total_ln <- c()
+
+# Iterate through all folders
+for (folder in folders) {
+  # Extract folder name
+  folder_name <- basename(folder)
+  
+  # Construct file paths for Logged and Total files
+  logged_spectra_file <- file.path(folder, paste0(folder_name, "_LoggedSpectra.txt"))
+  total_spectra_file <- file.path(folder, paste0(folder_name, "_TotalSpectra.txt"))
+  
+  logged_bb_file <- file.path(folder, paste0(folder_name, "_LoggedBB.txt"))
+  total_bb_file <- file.path(folder, paste0(folder_name, "_TotalBB.txt"))
+  
+  logged_ln_file <- file.path(folder, paste0(folder_name, "_LoggedLN.txt"))
+  total_ln_file <- file.path(folder, paste0(folder_name, "_TotalLN.txt"))
+  
+  # Check and read LoggedSpectra files
+  if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) > 0) {
+    logged_spectra_data <- fread(logged_spectra_file, fill = TRUE)
+    logged_spectra_list[[length(logged_spectra_list) + 1]] <- logged_spectra_data
+  } else if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) == 0) {
+    empty_logged_spectra <- c(empty_logged_spectra, folder_name)
+  }
+  
+  # Check and read TotalSpectra files
+  if (file.exists(total_spectra_file)) {
+    if (file.size(total_spectra_file) > 0) {
+      total_spectra_data <- fread(total_spectra_file, fill = TRUE)
+      total_spectra_list[[length(total_spectra_list) + 1]] <- total_spectra_data
+    } else {
+      empty_total_spectra <- c(empty_total_spectra, folder_name)
+    }
+  } else {
+    missing_total_spectra <- c(missing_total_spectra, folder_name)
+  }
+  
+  # Check and read LoggedBB files
+  if (file.exists(logged_bb_file) && file.size(logged_bb_file) > 0) {
+    logged_bb_data <- fread(logged_bb_file, fill = TRUE)
+    logged_bb_list[[length(logged_bb_list) + 1]] <- logged_bb_data
+  } else if (file.exists(logged_bb_file) && file.size(logged_bb_file) == 0) {
+    empty_logged_bb <- c(empty_logged_bb, folder_name)
+  }
+  
+  # Check and read TotalBB files
+  if (file.exists(total_bb_file)) {
+    if (file.size(total_bb_file) > 0) {
+      total_bb_data <- fread(total_bb_file, fill = TRUE)
+      total_bb_list[[length(total_bb_list) + 1]] <- total_bb_data
+    } else {
+      empty_total_bb <- c(empty_total_bb, folder_name)
+    }
+  } else {
+    missing_total_bb <- c(missing_total_bb, folder_name)
+  }
+  
+  # Check and read LoggedLN files
+  if (file.exists(logged_ln_file) && file.size(logged_ln_file) > 0) {
+    logged_ln_data <- fread(logged_ln_file, fill = TRUE)
+    logged_ln_list[[length(logged_ln_list) + 1]] <- logged_ln_data
+  } else if (file.exists(logged_ln_file) && file.size(logged_ln_file) == 0) {
+    empty_logged_ln <- c(empty_logged_ln, folder_name)
+  }
+  
+  # Check and read TotalLN files
+  if (file.exists(total_ln_file)) {
+    if (file.size(total_ln_file) > 0) {
+      total_ln_data <- fread(total_ln_file, fill = TRUE)
+      total_ln_list[[length(total_ln_list) + 1]] <- total_ln_data
+    } else {
+      empty_total_ln <- c(empty_total_ln, folder_name)
+    }
+  } else {
+    missing_total_ln <- c(missing_total_ln, folder_name)
+  }
+}
+
+# Stack all the data for each group
+if (length(logged_spectra_list) > 0) {
+  logged_spectra_combined <- rbindlist(logged_spectra_list, fill = TRUE)
+  save(logged_spectra_combined, file = "../009_097_logged_spectra.rdata")
+}
+
+if (length(total_spectra_list) > 0) {
+  total_spectra_combined <- rbindlist(total_spectra_list, fill = TRUE)
+  save(total_spectra_combined, file = "../009_097_total_spectra.rdata")
+}
+
+if (length(logged_bb_list) > 0) {
+  logged_bb_combined <- rbindlist(logged_bb_list, fill = TRUE)
+  save(logged_bb_combined, file = "../009_097_logged_bb.rdata")
+}
+
+if (length(total_bb_list) > 0) {
+  total_bb_combined <- rbindlist(total_bb_list, fill = TRUE)
+  save(total_bb_combined, file = "../009_097_total_bb.rdata")
+}
+
+if (length(logged_ln_list) > 0) {
+  logged_ln_combined <- rbindlist(logged_ln_list, fill = TRUE)
+  save(logged_ln_combined, file = "../009_097_logged_ln.rdata")
+}
+
+if (length(total_ln_list) > 0) {
+  total_ln_combined <- rbindlist(total_ln_list, fill = TRUE)
+  save(total_ln_combined, file = "../009_097_total_ln.rdata")
+}
+
+# Report missing or empty files
+if (length(missing_total_spectra) > 0) {
+  cat("No total spectra in folders:\n")
+  print(missing_total_spectra)
+} else {
+  cat("All folders have TotalSpectra.txt files.\n")
+}
+
+if (length(missing_total_bb) > 0) {
+  cat("No total BB in folders:\n")
+  print(missing_total_bb)
+} else {
+  cat("All folders have TotalBB.txt files.\n")
+}
+
+if (length(missing_total_ln) > 0) {
+  cat("No total LN in folders:\n")
+  print(missing_total_ln)
+} else {
+  cat("All folders have TotalLN.txt files.\n")
+}
+
+
+
+if (length(empty_logged_spectra) > 0) {
+  cat("Empty LoggedSpectra files in folders:\n")
+  print(empty_logged_spectra)
+} else {
+  cat("No empty LoggedSpectra files.\n")
+}
+
+
+
+if (length(empty_logged_bb) > 0) {
+  cat("Empty LoggedBB files in folders:\n")
+  print(empty_logged_bb)
+} else {
+  cat("No empty LoggedBB files.\n")
+}
+
+
+
+if (length(empty_logged_ln) > 0) {
+  cat("Empty LoggedLN files in folders:\n")
+  print(empty_logged_ln)
+} else {
+  cat("No empty LoggedLN files.\n")
+}
+
+if (length(empty_total_ln) > 0) {
+  cat("Empty TotalLN files in folders:\n")
+  print(empty_total_ln)
+} else {
+  cat("No empty TotalLN files.\n")
+}
+
+```
+

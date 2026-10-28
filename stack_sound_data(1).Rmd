@@ -1,0 +1,857 @@
+---
+title: "STA497 9.24 Meeting Task"
+author: Kaiwen Yang
+output: pdf_document
+---
+# Sound Data Processing
+## Stack Logged Spectra and Logged BB, seperately
+```{r, warning=FALSE}
+# Load required libraries
+library(data.table)
+
+# Set the working directory to the STA497 folder
+setwd("./Raw")
+
+# Get a list of all LNM folders
+folders <- list.dirs(".", recursive = FALSE, full.names = TRUE)
+
+# Initialize empty lists to store data for the different types of files
+logged_spectra_list <- list()
+# total_spectra_list <- list()
+logged_bb_list <- list()
+# total_bb_list <- list()
+# logged_ln_list <- list()
+# total_ln_list <- list()
+
+# Initialize vectors to keep track of missing or empty files
+missing_logged_spectra <- c()
+# missing_total_spectra <- c()
+missing_logged_bb <- c()
+# missing_total_bb <- c()
+# missing_logged_ln <- c()
+# missing_total_ln <- c()
+
+empty_logged_spectra <- c()
+# empty_total_spectra <- c()
+empty_logged_bb <- c()
+# empty_total_bb <- c()
+# empty_logged_ln <- c()
+# empty_total_ln <- c()
+
+# Iterate through all folders
+for (folder in folders) {
+  # Extract folder name
+  folder_name <- basename(folder)
+  
+  # Construct file paths for Logged and Total files
+  logged_spectra_file <- file.path(folder, paste0(folder_name, "_LoggedSpectra.txt"))
+  # total_spectra_file <- file.path(folder, paste0(folder_name, "_TotalSpectra.txt"))
+  
+  logged_bb_file <- file.path(folder, paste0(folder_name, "_LoggedBB.txt"))
+  # total_bb_file <- file.path(folder, paste0(folder_name, "_TotalBB.txt"))
+  
+  # logged_ln_file <- file.path(folder, paste0(folder_name, "_LoggedLN.txt"))
+  # total_ln_file <- file.path(folder, paste0(folder_name, "_TotalLN.txt"))
+  
+  # Check and read LoggedSpectra files
+  if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) > 0) {
+    logged_spectra_data <- fread(logged_spectra_file, fill = TRUE)
+    logged_spectra_list[[length(logged_spectra_list) + 1]] <- logged_spectra_data
+  } else if (file.exists(logged_spectra_file) && file.size(logged_spectra_file) == 0) {
+    empty_logged_spectra <- c(empty_logged_spectra, folder_name)
+  } else {
+    missing_logged_spectra <- c(missing_logged_spectra, folder_name)
+  }
+  
+  # Check and read TotalSpectra files
+  # if (file.exists(total_spectra_file)) {
+  #   if (file.size(total_spectra_file) > 0) {
+  #     total_spectra_data <- fread(total_spectra_file, fill = TRUE)
+  #     total_spectra_list[[length(total_spectra_list) + 1]] <- total_spectra_data
+  #   } else {
+  #     empty_total_spectra <- c(empty_total_spectra, folder_name)
+  #   }
+  # } else {
+  #   missing_total_spectra <- c(missing_total_spectra, folder_name)
+  #}
+  
+  # Check and read LoggedBB files
+  if (file.exists(logged_bb_file) && file.size(logged_bb_file) > 0) {
+    logged_bb_data <- fread(logged_bb_file, fill = TRUE)
+    logged_bb_list[[length(logged_bb_list) + 1]] <- logged_bb_data
+  } else if (file.exists(logged_bb_file) && file.size(logged_bb_file) == 0) {
+    empty_logged_bb <- c(empty_logged_bb, folder_name)
+  } else {
+    missing_logged_bb <- c(missing_logged_bb, folder_name)
+  }
+  
+  # Check and read TotalBB files
+  # if (file.exists(total_bb_file)) {
+  #   if (file.size(total_bb_file) > 0) {
+  #     total_bb_data <- fread(total_bb_file, fill = TRUE)
+  #     total_bb_list[[length(total_bb_list) + 1]] <- total_bb_data
+  #   } else {
+  #     empty_total_bb <- c(empty_total_bb, folder_name)
+  #   }
+  # } else {
+  #   missing_total_bb <- c(missing_total_bb, folder_name)
+  # }
+  
+  # Check and read LoggedLN files
+  # if (file.exists(logged_ln_file) && file.size(logged_ln_file) > 0) {
+  #   logged_ln_data <- fread(logged_ln_file, fill = TRUE)
+  #   logged_ln_list[[length(logged_ln_list) + 1]] <- logged_ln_data
+  # } else if (file.exists(logged_ln_file) && file.size(logged_ln_file) == 0) {
+  #   empty_logged_ln <- c(empty_logged_ln, folder_name)
+  # } else {
+  #   missing_logged_ln <- c(missing_logged_ln, folder_name)
+  # }
+  
+  # Check and read TotalLN files
+  # if (file.exists(total_ln_file)) {
+  #   if (file.size(total_ln_file) > 0) {
+  #     total_ln_data <- fread(total_ln_file, fill = TRUE)
+  #     total_ln_list[[length(total_ln_list) + 1]] <- total_ln_data
+  #   } else {
+  #     empty_total_ln <- c(empty_total_ln, folder_name)
+  #   }
+  # } else {
+  #   missing_total_ln <- c(missing_total_ln, folder_name)
+  # }
+}
+
+# Stack all the data for each group
+if (length(logged_spectra_list) > 0) {
+  logged_spectra_combined <- rbindlist(logged_spectra_list, fill = TRUE)
+  save(logged_spectra_combined, file = "../008_097_logged_spectra.rdata")
+}
+
+# if (length(total_spectra_list) > 0) {
+#   total_spectra_combined <- rbindlist(total_spectra_list, fill = TRUE)
+#   save(total_spectra_combined, file = "../009_097_total_spectra.rdata")
+# }
+
+if (length(logged_bb_list) > 0) {
+  logged_bb_combined <- rbindlist(logged_bb_list, fill = TRUE)
+  save(logged_bb_combined, file = "../008_097_logged_bb.rdata")
+}
+
+# if (length(total_bb_list) > 0) {
+#   total_bb_combined <- rbindlist(total_bb_list, fill = TRUE)
+#   save(total_bb_combined, file = "../009_097_total_bb.rdata")
+# }
+
+# if (length(logged_ln_list) > 0) {
+#   logged_ln_combined <- rbindlist(logged_ln_list, fill = TRUE)
+#   save(logged_ln_combined, file = "../009_097_logged_ln.rdata")
+# }
+
+# if (length(total_ln_list) > 0) {
+#   total_ln_combined <- rbindlist(total_ln_list, fill = TRUE)
+#   save(total_ln_combined, file = "../009_097_total_ln.rdata")
+# }
+
+# Report missing or empty files
+if (length(missing_logged_spectra) > 0) {
+  cat("No logged spectra in folders:\n")
+  print(missing_logged_spectra)
+} else {
+  cat("All folders have LoggedSpectra.txt files.\n")
+}
+
+if (length(empty_logged_spectra) > 0) {
+  cat("Empty LoggedSpectra files in folders:\n")
+  print(empty_logged_spectra)
+} else {
+  cat("No empty LoggedSpectra files.\n")
+}
+
+# if (length(missing_total_spectra) > 0) {
+#   cat("No total spectra in folders:\n")
+#   print(missing_total_spectra)
+# } else {
+#   cat("All folders have TotalSpectra.txt files.\n")
+# }
+
+#if (length(empty_total_spectra) > 0) {
+#  cat("Empty TotalSpectra files in folders:\n")
+#  print(empty_total_spectra)
+#} else {
+#  cat("No empty TotalSpectra files.\n")
+#}
+
+if (length(missing_logged_bb) > 0) {
+  cat("No logged BB in folders:\n")
+  print(missing_logged_bb)
+} else {
+  cat("All folders have LoggedBB.txt files.\n")
+}
+
+if (length(empty_logged_bb) > 0) {
+  cat("Empty LoggedBB files in folders:\n")
+  print(empty_logged_bb)
+} else {
+  cat("No empty LoggedBB files.\n")
+}
+
+#if (length(missing_total_bb) > 0) {
+#  cat("No total BB in folders:\n")
+#  print(missing_total_bb)
+#} else {
+#  cat("All folders have TotalBB.txt files.\n")
+#}
+
+#if (length(empty_total_bb) > 0) {
+#  cat("Empty TotalBB files in folders:\n")
+#  print(empty_total_bb)
+#} else {
+#  cat("No empty TotalBB files.\n")
+#}
+
+#if (length(missing_logged_ln) > 0) {
+#  cat("No logged LN in folders:\n")
+#  print(missing_logged_ln)
+#} else {
+#  cat("All folders have LoggedLN.txt files.\n")
+#}
+
+#if (length(empty_logged_ln) > 0) {
+#  cat("Empty LoggedLN files in folders:\n")
+#  print(empty_logged_ln)
+#} else {
+#  cat("No empty LoggedLN files.\n")
+#}
+#
+#if (length(missing_total_ln) > 0) {
+#  cat("No total LN in folders:\n")
+#  print(missing_total_ln)
+#} else {
+#  cat("All folders have TotalLN.txt files.\n")
+#}
+#
+#if (length(empty_total_ln) > 0) {
+#  cat("Empty TotalLN files in folders:\n")
+#  print(empty_total_ln)
+#} else {
+#  cat("No empty TotalLN files.\n")
+#}
+
+```
+```{r}
+load("008_097_logged_bb.rdata")
+
+head(logged_bb_combined)
+```
+## Load Stacked data
+```{r}
+# Load the 009_097_total_spectra.rdata file
+load("008_097_logged_spectra.rdata")
+
+# Display the head of the loaded data
+head(logged_spectra_combined)
+
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+# Step 1: Rename columns to remove spaces
+logged_spectra_combined <- logged_spectra_combined %>%
+  rename(Project_Name = `Project Name`, Start_Time = `Start Time`)
+
+logged_bb_combined <- logged_bb_combined %>%
+  rename(Project_Name = `Project Name`, Start_Time = `Start Time`)
+```
+## Convert Time & Dimension & Drop NA in project name or time
+```{r}
+# Step 2: Manipulate "Start Time" so it can be used as time
+logged_spectra_combined$Start_Time <- as.POSIXct(logged_spectra_combined$Start_Time, format = "%m/%d/%Y %I:%M:%S %p")
+
+logged_bb_combined$Start_Time <- as.POSIXct(logged_bb_combined$Start_Time, format = "%m/%d/%Y %I:%M:%S %p")
+
+#logged_spectra_combined <- logged_spectra_combined %>%
+#  mutate(Start_Time = mdy_hms(Start_Time))  # Format as "month/day/year hour:min:sec AM/PM"
+
+#logged_bb_combined <- logged_bb_combined %>%
+#  mutate(Start_Time = mdy_hms(Start_Time))  # Format as "month/day/year hour:min:sec AM/PM"
+
+```
+
+```{r}
+head(logged_spectra_combined)
+```
+```{r}
+head(logged_bb_combined)
+```
+
+### Dimension of the two sound dataset: logged bb / spectral: 474371 * 58 / 167
+```{r}
+dim(logged_bb_combined)
+dim(logged_spectra_combined)
+```
+
+#### 23 rows missing Project Name & Time in Logged BB 
+```{r}
+# Find rows with missing values in Project_Name or Start_Time
+missing_rows_bb <- logged_bb_combined[is.na(logged_bb_combined$Project_Name) & is.na(logged_bb_combined$Start_Time), ]
+
+dim(missing_rows_bb)
+```
+
+#### 23 rows missing Project Name & Time in Logged Spectra
+```{r}
+# Find rows with missing values in Project_Name or Start_Time
+missing_rows_spectra <- logged_spectra_combined[is.na(logged_spectra_combined$Project_Name) & is.na(logged_spectra_combined$Start_Time), ]
+
+dim(missing_rows_spectra)
+```
+### Drop NA rows of Project Name or Time in both datasets
+```{r}
+# Drop rows where Project_Name or Start_Time are NA
+logged_bb_combined <- logged_bb_combined[!is.na(logged_bb_combined$Project_Name) & !is.na(logged_bb_combined$Start_Time), ]
+
+# Check the dimensions to confirm it has the correct number of rows
+dim(logged_bb_combined)
+
+```
+
+```{r}
+# Drop rows where Project_Name or Start_Time are NA
+logged_spectra_combined <- logged_spectra_combined[!is.na(logged_spectra_combined$Project_Name) & !is.na(logged_spectra_combined$Start_Time), ]
+
+# Check the dimensions to confirm it has the correct number of rows
+dim(logged_spectra_combined)
+```
+
+```{r}
+# Remove leading/trailing spaces
+logged_spectra_combined$Project_Name <- trimws(logged_spectra_combined$Project_Name)
+logged_bb_combined$Project_Name <- trimws(logged_bb_combined$Project_Name)
+```
+
+
+## Sound Data Merge
+```{r warning=FALSE}
+# Step 3: Perform a full join on "Project Name" and "Start Time"
+sound_merged_data <- merge(logged_spectra_combined, logged_bb_combined, 
+                         by = c("Project_Name", "Start_Time"))
+```
+
+```{r}
+dim(sound_merged_data)
+```
+
+```{r}
+head(sound_merged_data)
+```
+### Some column in Logged Spectral does not have full record
+```{r}
+ggplot(sound_merged_data, aes(x = Start_Time, y = `LZFmax 12.5Hz`)) +
+  geom_line() +
+  labs(title = "LZFmax 12.5Hz Over Time", x = "Time", y = "LZFmax 12.5Hz") +
+  theme_minimal() 
+```
+
+```{r}
+ggplot(sound_merged_data, aes(x = Start_Time, y = `LZeq 125Hz`)) +
+  geom_line() +
+  labs(title = "LZeq 125Hz Over Time", x = "Time", y = "LZeq 125Hz") +
+  theme_minimal() 
+```
+
+```{r}
+save(sound_merged_data, file = "sound_merge_data.rdata")
+```
+
+# Load NOx data
+```{r}
+nox_data <- read.csv("Boulder_AIR_LNM_nox_finalized_1min.csv")
+```
+
+```{r}
+#first row is empty so remove
+nox_data <- nox_data[-1, ]
+
+#colnames(nox_data)[colnames(nox_data) == "nox"] <- "nox-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no"] <- "no-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no2"] <- "no2-ppb"
+```
+## Operation on Data: chr to numeric, NA values removal
+
+```{r}
+head(nox_data)
+dim(nox_data)
+```
+### chr to numeric
+```{r}
+nox_data$nox <- as.numeric(nox_data$nox)
+nox_data$no <- as.numeric(nox_data$no)
+nox_data$no2 <- as.numeric(nox_data$no2)
+
+```
+### Nox data started from 2023-04-15 00:00, while nox & no & no2 are missing until 2023-04-15 19:25
+```{r}
+# Find the index of the first non-missing value in the nox column
+first_non_missing_index <- which(!is.na(nox_data$nox))[1]
+
+# Subset the dataset from the first non-missing row
+nox_data_reduced <- nox_data[first_non_missing_index:nrow(nox_data), ]
+
+# Check the result
+head(nox_data_reduced)
+```
+### convert time
+```{r}
+# Convert the time_utc column to POSIXct format
+nox_data_reduced$time_utc <- as.POSIXct(nox_data_reduced$time_utc, format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+# Check the result
+head(nox_data_reduced$time_utc)
+```
+
+```{r}
+earliest_time_nox <- min(nox_data_reduced$time_utc, na.rm = TRUE)
+earliest_time_nox
+```
+
+```{r}
+earliest_time_sound <- min(sound_merged_data$Start_Time, na.rm = TRUE)
+earliest_time_sound
+```
+### Nox data with some discontinuity
+```{r}
+ggplot(nox_data_reduced, aes(x = time_utc, y = nox)) +
+  geom_line() +
+  labs(title = "NOx Levels Over Time", x = "Time", y = "NOx") +
+  theme_minimal() 
+```
+
+### Zoom in - Missing nox data for some time
+```{r}
+nox_missing <- nox_data_reduced %>%
+  filter(time_utc >= as.POSIXct("2023-07-17 00:00", tz = "UTC") &
+         time_utc <= as.POSIXct("2023-07-24 23:59", tz = "UTC"))
+```
+
+```{r}
+ggplot(nox_missing, aes(x = time_utc, y = no2)) +
+  geom_line() +
+  labs(title = "NO2 Levels Over Time", x = "Time", y = "NO2") +
+  theme_minimal() 
+```
+```{r}
+ggplot(nox_missing, aes(x = time_utc, y = nox)) +
+  geom_line() +
+  labs(title = "NOx Levels Over Time", x = "Time", y = "NOx") +
+  theme_minimal() 
+```
+```{r}
+ggplot(nox_missing, aes(x = time_utc, y = no)) +
+  geom_line() +
+  labs(title = "NO Levels Over Time", x = "Time", y = "NO") +
+  theme_minimal() 
+```
+
+```{r}
+nox_missing_2 <- nox_data_reduced %>%
+  filter(time_utc >= as.POSIXct("2023-11-17 00:00", tz = "UTC") &
+         time_utc <= as.POSIXct("2024-03-15 23:59", tz = "UTC"))
+```
+
+```{r}
+ggplot(nox_missing_2, aes(x = time_utc, y = no2)) +
+  geom_line() +
+  labs(title = "NO2 Levels Over Time", x = "Time", y = "NO2") +
+  theme_minimal() 
+```
+
+
+# Nox Sound Merge
+```{r}
+# Rename the Start_Time column in sound_merged_data to time_utc to match nox_data_reduced
+colnames(sound_merged_data)[colnames(sound_merged_data) == "Start_Time"] <- "time_utc"
+
+# Perform a left join to keep all rows from nox_data_reduced
+merged_data_2 <- merge(nox_data_reduced, sound_merged_data, by = "time_utc", all.x = TRUE, all.y = TRUE)
+
+# Check the result
+head(merged_data_2)
+
+```
+
+```{r}
+dim(merged_data_2)
+```
+
+## Merged Data discovery
+```{r}
+ggplot(merged_data_2, aes(x = time_utc, y = no2)) +
+  geom_line() +
+  labs(title = "NO2 Levels Over Time", x = "Start Time", y = "NO") +
+  theme_minimal()
+```
+
+
+### plot where flat - sound data are not collected during the time LNM075
+```{r}
+data_filtered <- merged_data_2 %>%
+  filter(time_utc >= as.POSIXct("2023-10-23 00:00", tz = "UTC") &
+         time_utc <= as.POSIXct("2024-03-24 23:59", tz = "UTC"))
+
+# View the filtered dataset
+data_filtered
+```
+
+```{r}
+ggplot(data_filtered, aes(x = time_utc, y = no2)) +
+  geom_line() +
+  labs(title = "NO2 Levels Over Time", x = "Time", y = "NO2") +
+  theme_minimal() 
+```
+
+
+
+```{r}
+ggplot(merged_data_2, aes(x = time_utc, y = `LZeq 125Hz`)) +
+  geom_line() +
+  labs(title = "`LZeq 125Hz` Over Time", x = "Time", y = "`LZeq 125Hz`") +
+  theme_minimal()
+```
+```{r}
+ggplot(merged_data_2, aes(x = time_utc, y = no2)) +
+  geom_line() +
+  labs(title = "NO2 Levels Over Time", x = "Start Time", y = "NO") +
+  theme_minimal()
+```
+
+## Save Data
+```{r}
+save(merged_data_2, file = "sound_nox_data.rdata")
+```
+
+```{r}
+head <- head(merged_data_2)
+```
+
+```{r}
+write.csv(merged_data_2, "sound_nox_data.csv")
+```
+
+
+```{r}
+sound_nox_data <- merged_data_2
+```
+
+```{r}
+head(sound_nox_data)
+```
+```{r}
+colnames(sound_nox_data)
+```
+# Correlation Plot
+```{r}
+# Define the variables of interest
+variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq", "LAleq", "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz", "Sample temp (C)", "Sample RH (%)", "Sample dewpoint (C)", 
+  "Internal pressure (Pa)", "Internal temp (C)", "Ambient Temperature", 
+  "Wind speed", "Wind direction", "PM2.5(mg/m3)", "BC(ng/m3)", "no2"
+)
+
+# Check which variables are missing from the dataframe
+missing_variables <- variables_of_interest[!variables_of_interest %in% colnames(sound_nox_data)]
+
+# Print the missing variables
+print(missing_variables)
+```
+```{r}
+summary_data <- data.frame(
+  Variable = variables_of_interest,
+  Min = NA,
+  First_Qu = NA,
+  Median = NA,
+  Mean = NA,
+  Third_Qu = NA,
+  Max = NA
+)
+
+# Step 5: For the variables that exist in the dataset, calculate the summary statistics
+for (var in variables_of_interest) {
+  if (var %in% colnames(sound_nox_data)) {
+    summary_values <- summary(sound_nox_data[[var]])
+    summary_data[summary_data$Variable == var, "Min"] <- summary_values["Min."]
+    summary_data[summary_data$Variable == var, "First_Qu"] <- summary_values["1st Qu."]
+    summary_data[summary_data$Variable == var, "Median"] <- summary_values["Median"]
+    summary_data[summary_data$Variable == var, "Mean"] <- summary_values["Mean"]
+    summary_data[summary_data$Variable == var, "Third_Qu"] <- summary_values["3rd Qu."]
+    summary_data[summary_data$Variable == var, "Max"] <- summary_values["Max."]
+  }
+}
+
+# Step 6: Rename columns to fix the issue
+colnames(summary_data) <- c("Variable", "Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max")
+
+# Step 7: Print the summary table using kable
+library(knitr)
+library(kableExtra)
+
+kable(summary_data, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+```{r}
+# install.packages("corrplot")
+# install.packages("Hmisc")
+
+library(ggcorrplot)
+library(ggplot2)
+library(Hmisc)
+library(corrplot)
+
+```
+
+```{r}
+correlation_variables <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LCeq", 
+  "LZeq 40Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", 
+  "LZeq 125Hz", "LZeq 160Hz", "LZeq 250Hz", "LZeq 500Hz", 
+  "LZeq 800Hz", "LZeq 5kHz", "LZeq 12.5kHz", "no2"
+)
+
+# Step 2: Filter the dataset to include only the variables for correlation
+filtered_data <- sound_nox_data[, correlation_variables, drop=FALSE]
+```
+
+```{r}
+# Step 1: Compute the correlation matrix
+cor_matrix <- rcorr(as.matrix(filtered_data))$r  # This will calculate the Pearson correlation matrix
+
+# Step 2: Plot the correlation matrix using corrplot with the 'circle' method
+corrplot(cor_matrix, 
+         method = "circle",         # Plot method
+         type = "lower",            # Show only upper triangle
+         col = colorRampPalette(c("brown", "white", "purple"))(200),  # Custom color palette
+         tl.col = "black",          # Color of the text labels
+         tl.cex = 0.8,              # Size of text labels
+         tl.srt = 45,
+         cl.cex = 0.8,              # Size of color legend text
+         addgrid.col = "grey",        
+         is.corr = TRUE)            # Indicate that it is a correlation matrix
+
+```
+
+
+
+# Read in o3 data
+```{r}
+o3_data <- read.csv("Boulder_AIR_LNM_o3_finalized_1min.csv")
+```
+
+```{r}
+#first row is empty so remove
+o3_data <- o3_data[-1, ]
+```
+
+```{r}
+# Rename the column 'o3' to 'o3(ppr)'
+# colnames(o3_data)[colnames(o3_data) == "o3"] <- "o3(ppb)"
+```
+
+## Operation on Data: chr to numeric, NA values removal
+```{r}
+head(o3_data)
+```
+### chr to numeric
+```{r}
+o3_data$o3 <- as.numeric(o3_data$o3)
+```
+
+### convert time
+```{r}
+# Convert the time_utc column to POSIXct format
+o3_data$time_utc <- as.POSIXct(o3_data$time_utc, format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+# Check the result
+head(o3_data)
+```
+# Read in co data
+```{r}
+co_data <- read.csv("Boulder_AIR_LNM_co_finalized_1min.csv")
+head(co_data)
+```
+
+```{r}
+#first row is empty so remove
+co_data <- co_data[-1, ]
+co_data <- co_data[-1, ]
+#colnames(nox_data)[colnames(nox_data) == "nox"] <- "nox-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no"] <- "no-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no2"] <- "no2-ppb"
+```
+## Operation on Data: chr to numeric, NA values removal
+
+```{r}
+head(co_data)
+dim(co_data)
+```
+### chr to numeric
+```{r}
+co_data$co <- as.numeric(co_data$co)
+```
+### Nox data started from 2023-04-15 00:00, while nox & no & no2 are missing until 2023-04-15 19:25
+```{r}
+# Find the index of the first non-missing value in the nox column
+first_non_missing_index <- which(!is.na(co_data$co))[1]
+
+# Subset the dataset from the first non-missing row
+co_data_reduced <- co_data[first_non_missing_index:nrow(co_data), ]
+
+# Check the result
+head(co_data_reduced)
+```
+### convert time
+```{r}
+# Convert the time_utc column to POSIXct format
+co_data_reduced$time_utc <- as.POSIXct(co_data_reduced$time_utc, format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+# Check the result
+head(co_data_reduced$time_utc)
+```
+
+```{r}
+earliest_time_co <- min(co_data_reduced$time_utc, na.rm = TRUE)
+earliest_time_co
+```
+
+
+
+
+
+
+# Read in h2s data
+```{r}
+h2s_data <- read.csv("Boulder_AIR_LNM_h2s_finalized_1min.csv")
+head(h2s_data)
+```
+
+```{r}
+#first row is empty so remove
+h2s_data <- h2s_data[-1, ]
+
+#colnames(nox_data)[colnames(nox_data) == "nox"] <- "nox-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no"] <- "no-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no2"] <- "no2-ppb"
+```
+## Operation on Data: chr to numeric, NA values removal
+
+```{r}
+head(h2s_data)
+dim(h2s_data)
+```
+### chr to numeric
+```{r}
+h2s_data$h2s <- as.numeric(h2s_data$h2s)
+h2s_data$so2 <- as.numeric(h2s_data$so2)
+
+```
+### h2s missing until 2023-04-15 23:19
+```{r}
+# Find the index of the first non-missing value in the nox column
+first_non_missing_index <- which(!is.na(h2s_data$so2))[1]
+
+# Subset the dataset from the first non-missing row
+h2s_data_reduced <- h2s_data[first_non_missing_index:nrow(h2s_data), ]
+
+# Check the result
+h2s_data_reduced
+```
+```{r}
+h2s_data_reduced <- h2s_data_reduced[-1, ]
+h2s_data_reduced <- h2s_data_reduced[-1, ]
+h2s_data_reduced <- h2s_data_reduced[-1, ]
+h2s_data_reduced <- h2s_data_reduced[-1, ]
+h2s_data_reduced <- h2s_data_reduced[-1, ]
+
+# Find the index of the first non-missing value in the nox column
+first_non_missing_index <- which(!is.na(h2s_data_reduced$h2s))[1]
+
+# Subset the dataset from the first non-missing row
+h2s_data_reduced <- h2s_data_reduced[first_non_missing_index:nrow(h2s_data_reduced), ]
+
+head(h2s_data_reduced)
+```
+
+### convert time
+```{r}
+# Convert the time_utc column to POSIXct format
+h2s_data_reduced$time_utc <- as.POSIXct(h2s_data_reduced$time_utc, format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+# Check the result
+head(h2s_data_reduced$time_utc)
+```
+
+# Read in ch4 data
+```{r}
+ch4_data <- read.csv("Boulder_AIR_LNM_ch4_finalized_1min.csv")
+head(ch4_data)
+```
+
+```{r}
+#first row is empty so remove
+ch4_data <- ch4_data[-1, ]
+
+#colnames(nox_data)[colnames(nox_data) == "nox"] <- "nox-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no"] <- "no-ppb"
+#colnames(nox_data)[colnames(nox_data) == "no2"] <- "no2-ppb"
+```
+## Operation on Data: chr to numeric, NA values removal
+
+```{r}
+head(ch4_data)
+dim(ch4_data)
+```
+### chr to numeric
+```{r}
+ch4_data$ch4 <- as.numeric(ch4_data$ch4)
+ch4_data$co2_ppm <- as.numeric(ch4_data$co2_ppm)
+```
+### Nox data started from 2023-04-15 00:00, while nox & no & no2 are missing until 2023-04-15 19:25
+```{r}
+# Find the index of the first non-missing value in the nox column
+first_non_missing_index <- which(!is.na(ch4_data$ch4))[1]
+
+# Subset the dataset from the first non-missing row
+ch4_data_reduced <- ch4_data[first_non_missing_index:nrow(ch4_data), ]
+
+# Check the result
+head(ch4_data_reduced)
+```
+### convert time
+```{r}
+# Convert the time_utc column to POSIXct format
+ch4_data_reduced$time_utc <- as.POSIXct(ch4_data_reduced$time_utc, format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+# Check the result
+head(ch4_data_reduced$time_utc)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,288 @@
+---
+title: "STA465 Project Appendix"
+author: "Kaiwen Yang"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    theme: united
+    highlight: tango
+    number_sections: true
+---
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+# Load pb-vnf_230414-240901.rds
+pb_vnf <- readRDS("pb-vnf_230414-240901.rds")
+
+# Load cb_wells_prod.rds
+cb_wells_prod <- readRDS("cb_wells_prod.rds") # pretty cleaned
+
+
+
+pb_vnf<-pb_vnf[pb_vnf$date>="2023-05-01" & pb_vnf$date<="2024-05-31",] # study period
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Load cb_wells_prod.rds
+cb_wells_prod <- readRDS("cb_wells_prod.rds") # pretty cleaned
+
+
+cb_wells_prod<-cb_wells_prod[cb_wells_prod$prod_date>="2023-05-01" & cb_wells_prod$prod_date<="2024-05-31",]
+head(cb_wells_prod)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+cb_wells_prod_density <- cb_wells_prod %>% 
+  select(api, uog_lon, uog_lat) %>% 
+  distinct() %>%
+  rename(lon = uog_lon, lat = uog_lat)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Define the central point (e.g., using latitude and longitude coordinates)
+central_point <- st_sfc(st_point(c(-104.1089, 32.2961)), crs = 4326)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+central_point_utm <- st_transform(central_point, crs = 32613) # Adjust CRS based on location (e.g., UTM zone)
+
+# Convert central point to WGS84 for leaflet
+central_point_wgs84 <- st_transform(central_point, crs = 4326)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+pb_vnf_high_temp <- pb_vnf %>%
+  filter(temp_bb >= 1600)
+
+# Convert points to an sf object and transform to the same UTM projection
+flare_points_sf <- st_as_sf(pb_vnf_high_temp, coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 32613)
+
+# Create a 20 km buffer around the central point
+buffer_20km <- st_buffer(central_point_utm, dist = 20000) # 20 km in meters
+
+# Identify points within the buffer
+flare_points_in_buffer20 <- flare_points_sf %>%
+  st_filter(buffer_20km)
+
+# Transform buffer back to WGS84 (EPSG 4326) for leaflet
+buffer_20km_wgs84 <- st_transform(buffer_20km, crs = 4326)
+
+# Filter points within the 20 km buffer and transform them back to WGS84
+flare_points_in_buffer20 <- flare_points_sf %>%
+  st_filter(buffer_20km) %>%
+  st_transform(crs = 4326)
+
+# Points outside the buffer
+flare_points_outside_buffer <- flare_points_sf %>%
+  filter(!st_within(., buffer_20km, sparse = FALSE)) %>%
+  st_transform(crs = 4326)
+
+cb_wells_prod<-cb_wells_prod[cb_wells_prod$prod_date>="2023-05-01" & cb_wells_prod$prod_date<="2024-05-31",] # study period
+
+cb_wells_prod <- cb_wells_prod %>% 
+  rename(lon = uog_lon, lat = uog_lat)
+
+# Convert points to an sf object and transform to the same UTM projection
+well_points_sf <- st_as_sf(cb_wells_prod, coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 32613)
+
+
+# Filter points within the 20 km buffer and transform them back to WGS84
+wells_in_buffer20 <- well_points_sf %>%
+  st_filter(buffer_20km) %>%
+  st_transform(crs = 4326)
+
+# Points outside the buffer
+wells_outside_buffer <- well_points_sf %>%
+  filter(!st_within(., buffer_20km, sparse = FALSE)) %>%
+  st_transform(crs = 4326)
+```
+
+# Maps
+## Figure 1: Spatial Density Map of Wells and Flares (separately)
+### Wells
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Load necessary libraries
+library(ggplot2)
+# Create leaflet map
+leaflet(cb_wells_prod_density) %>%
+  addTiles() %>%
+  addHeatmap(lng = ~lon, lat = ~lat, intensity = 1, blur = 20, max = 0.05, radius = 15) %>%
+ 
+  # Add central point
+  addMarkers(data = central_point_wgs84, popup = "Central Point (The Trailer)", label = "The Trailer") %>%
+  addLegend("bottomright", colors = c("blue", "red"), labels = c("Low", "High"),
+             title = "Density")
+
+```
+
+### Flares
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Load necessary libraries
+library(ggplot2)
+# Create leaflet map
+leaflet(pb_vnf) %>%
+  addTiles() %>%
+  addHeatmap(lng = ~lon, lat = ~lat, intensity = 1, blur = 20, max = 0.05, radius = 15) %>%
+  # Add central point
+  addMarkers(data = central_point_wgs84, popup = "Central Point (The Trailer)", label = "The Trailer") %>%
+  addLegend("bottomright", colors = c("blue", "red"), labels = c("Low", "High"),
+             title = "Density")
+```
+
+## Figure 2: Map of Flare, Well Locations and the 20km Buffer
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot with leaflet
+leaflet() %>%
+  addTiles() %>%
+  # Add buffer (20 km around central point)
+  addPolygons(data = buffer_20km_wgs84, color = "blue", fillOpacity = 0.2, 
+              popup = "20 km Buffer") %>%
+  # Add central point
+  addMarkers(data = central_point_wgs84, popup = "Central Point (The Trailer)", label = "The Trailer") %>%
+  # Add points inside the buffer in green
+  addCircleMarkers(data = flare_points_in_buffer20, color = "green", radius = 3,
+                   label = ~"Flares within 20km buffer") %>%
+  # Add points inside the buffer in green
+  addCircleMarkers(data = wells_in_buffer20, color = "green", radius = 3,
+                   label = ~"Wells within 20km buffer") %>%
+  # Add points outside the buffer in orange
+  addCircleMarkers(data = flare_points_outside_buffer, color = "orange", radius = 3,
+                   label = ~"Flares outside 20km buffer") %>%
+  # Add points outside the buffer in orange
+  addCircleMarkers(data = wells_outside_buffer, color = "orange", radius = 3,
+                   label = ~"Wells outside 20km buffer") %>%
+  addLegend("bottomright", colors = c("green", "orange"), labels = c("Inside Buffer", "Outside Buffer"),
+            title = "Flares & Wells Location")
+```
+
+
+# Summary Statistics
+## Table 2: Table 2: Summary Statistics For Production of Wells in the Buffer
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+
+# Ensure prod_date is in Date format
+wells_in_buffer20 <- wells_in_buffer20 %>%
+  mutate(month = format(prod_date, "%Y-%m"))  # Extract month and year from prod_date
+
+# Calculate the required summary statistics
+wells_summary_data <- wells_in_buffer20 %>%
+  group_by(month) %>%
+  summarize(
+    num_oil_wells = sum(prod_type_p == "OIL", na.rm = TRUE),
+    num_gas_wells = sum(prod_type_p == "GAS", na.rm = TRUE),
+    avg_monthly_oil = mean(monthly_oil, na.rm = TRUE),
+    median_monthly_oil = median(monthly_oil, na.rm = TRUE),
+    iqr_monthly_oil = IQR(monthly_oil, na.rm = TRUE),
+    avg_monthly_gas = mean(monthly_gas, na.rm = TRUE),
+    median_monthly_gas = median(monthly_gas, na.rm = TRUE),
+    iqr_monthly_gas = IQR(monthly_gas, na.rm = TRUE)
+  )
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Load necessary library
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+wells_summary_data_table <- wells_summary_data %>%
+  st_drop_geometry()
+
+# Assuming wells_summary_data is already created
+wells_summary_data_table <- wells_summary_data_table %>%
+  rename(
+    "Year & Month" = month,
+    "Number of Oil Wells" = num_oil_wells,
+    "Number of Gas Wells" = num_gas_wells,
+    "Average Monthly Production of Oil" = avg_monthly_oil,
+    "Median Monthly Production of Oil" = median_monthly_oil,
+    "IQR of Monthly Oil Production" = iqr_monthly_oil,
+    "Average Monthly Production of Gas" = avg_monthly_gas,
+    "Median Monthly Production of Gas" = median_monthly_gas,
+    "IQR of Monthly Gas Production" = iqr_monthly_gas
+  )
+
+
+
+# Display the summary data in a Kable table
+wells_summary_data_table %>%
+  kable("pipe", align = "c", caption = "Summary of Monthly Oil and Gas Production Data") %>%
+  kable_styling(full_width = FALSE, position = "center")
+#table_html <- kable(wells_summary_data_table, format = "html") %>%
+#  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# Save the table as an HTML file
+# save_kable(table_html, "wells_summary_data_table.html")
+```
+## Table 3: Summary Statistics For Sound Frequencies
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+load("sound_pollutant_met_data.rdata")
+
+# Define the variables of interest without LAleq
+frequency_variables_of_interest <- c(
+  "LAFmax", "LAFmin", "LCpeak", "LAeq",  "LCeq", "LZeq 12.5Hz", 
+  "LZeq 16Hz", "LZeq 20Hz", "LZeq 25Hz", "LZeq 31.5Hz", "LZeq 40Hz", 
+  "LZeq 50Hz", "LZeq 63Hz", "LZeq 80Hz", "LZeq 100Hz", "LZeq 125Hz", 
+  "LZeq 160Hz", "LZeq 200Hz", "LZeq 250Hz", "LZeq 315Hz", "LZeq 400Hz", 
+  "LZeq 500Hz", "LZeq 630Hz", "LZeq 800Hz", "LZeq 1kHz", "LZeq 1.25kHz", 
+  "LZeq 1.6kHz", "LZeq 2kHz", "LZeq 2.5kHz", "LZeq 3.15kHz", "LZeq 4kHz", 
+  "LZeq 5kHz", "LZeq 6.3kHz", "LZeq 8kHz", "LZeq 10kHz", "LZeq 12.5kHz", 
+  "LZeq 16kHz"
+)
+
+frequency_summary_data <- data.frame(
+  Variable = frequency_variables_of_interest,
+  Min = NA,
+  First_Qu = NA,
+  Median = NA,
+  Mean = NA,
+  Third_Qu = NA,
+  Max = NA
+)
+
+# Step 5: For the variables that exist in the dataset, calculate the summary statistics
+for (var in frequency_variables_of_interest) {
+  if (var %in% colnames(sound_pollutant_met_data)) {
+    summary_values <- summary(sound_pollutant_met_data[[var]])
+    frequency_summary_data[frequency_summary_data$Variable == var, "Min"] <- summary_values["Min."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "First_Qu"] <- summary_values["1st Qu."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Median"] <- summary_values["Median"]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Mean"] <- summary_values["Mean"]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Third_Qu"] <- summary_values["3rd Qu."]
+    frequency_summary_data[frequency_summary_data$Variable == var, "Max"] <- summary_values["Max."]
+  }
+}
+
+# Step 6: Rename columns to fix the issue
+colnames(frequency_summary_data) <- c("Variable", "Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max")
+
+# Step 7: Print the summary table using kable
+library(knitr)
+library(kableExtra)
+
+table_html <- kable(frequency_summary_data, format = "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+table_html
+
+# table_html <- kable(frequency_summary_data, format = "html") %>%
+#  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# Save the table as an HTML file
+# save_kable(table_html, "frequency_summary_data.html")
+```
+
+
+
+

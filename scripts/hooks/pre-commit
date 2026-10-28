@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Pre-commit guard: refuses to commit data-like files, raw sound logs, or files over 1 MB.
+# Install: cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+set -u
+shopt -s nocasematch
+
+data_re='\.(csv|tsv|txt|xlsx?|parquet|feather|h5|hdf5|sav|dta|sqlite|db|json|zip|gz|7z|rds|rdata|rda|html|png|jpe?g|svg|pdf)$'
+allow_re='^(renv\.lock|renv/settings\.json|docs/slides/[^/]+\.pdf)$'
+max_bytes=1048576
+bad=0
+
+while IFS= read -r -d '' f; do
+  [[ "$f" =~ $allow_re ]] && continue
+  if [[ "$f" =~ $data_re || "$f" == *LNM0* ]]; then
+    echo "pre-commit: blocked data-like file: $f" >&2
+    bad=1
+    continue
+  fi
+  size=$(git cat-file -s ":$f" 2>/dev/null || echo 0)
+  if (( size > max_bytes )); then
+    echo "pre-commit: blocked file over 1 MB: $f" >&2
+    bad=1
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+exit $bad

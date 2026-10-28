@@ -1,0 +1,14 @@
+---
+title: "Excluding AC Effect on Sound (Hopefully)"
+author: Kaiwen Yang
+output: pdf_document
+---
+
+```{r}
+load("sound_pollutant_met_data.rdata")
+```
+
+```{r}
+
+```
+
