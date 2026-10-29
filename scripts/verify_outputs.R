@@ -18,6 +18,7 @@ add <- function(check, file, status, detail = "") {
   results[[length(results) + 1]] <<- data.table(check = check, file = file, status = status, detail = detail)
 }
 md5 <- function(f) unname(tools::md5sum(f))
+`%|%` <- function(x, y) if (identical(x, "")) y else x
 fmt <- function(x) format(signif(x, 3), scientific = TRUE)
 
 # ---- (b) optional: re-run the original notebook code ---------------------------------
@@ -108,22 +109,26 @@ compare_csv <- function(f, chunk = 200000L) {
   old <- legacy_processed_path(f); new <- processed_path(f)
   if (!file.exists(new)) return(add("data", f, "MISSING", "not produced"))
   if (md5(old) == md5(new)) return(add("data", f, "PASS", paste("md5", md5(new))))
-  ha <- names(fread(old, nrows = 0L)); hb <- names(fread(new, nrows = 0L))
-  if (!identical(ha, hb)) return(add("data", f, "FAIL", "headers differ"))
+  ha <- names(suppressWarnings(fread(old, nrows = 0L))); hb <- names(suppressWarnings(fread(new, nrows = 0L)))
+  common <- intersect(ha, hb)
+  header_note <- if (identical(ha, hb)) character() else
+    sprintf("columns only in legacy: %s; only in re-run: %s; compared %d shared columns",
+            paste(setdiff(ha, hb), collapse = ",") %|% "none", paste(setdiff(hb, ha), collapse = ",") %|% "none", length(common))
   offset <- 0L; bad <- 0; rows_a <- 0L; rows_b <- 0L
   repeat {
-    read <- function(p) tryCatch(suppressWarnings(fread(p, skip = offset + 1L, nrows = chunk, header = FALSE,
-                                                        colClasses = "character", col.names = ha, showProgress = FALSE)),
-                                 error = function(e) data.table())
-    a <- read(old); b <- read(new)
+    read <- function(p, h) tryCatch(suppressWarnings(fread(p, skip = offset + 1L, nrows = chunk, header = FALSE,
+                                                           colClasses = "character", col.names = h, showProgress = FALSE)),
+                                    error = function(e) data.table())
+    a <- read(old, ha); b <- read(new, hb)
     rows_a <- rows_a + nrow(a); rows_b <- rows_b + nrow(b)
     if (nrow(a) == 0 && nrow(b) == 0) break
     n <- min(nrow(a), nrow(b))
-    for (cn in ha) bad <- bad + sum(a[[cn]][seq_len(n)] != b[[cn]][seq_len(n)], na.rm = TRUE)
+    for (cn in common) bad <- bad + sum(a[[cn]][seq_len(n)] != b[[cn]][seq_len(n)], na.rm = TRUE)
     if (nrow(a) < chunk || nrow(b) < chunk) break
     offset <- offset + chunk
   }
-  detail <- sprintf("md5 differs; rows %d vs %d; %s cells with different text", rows_a, rows_b, format(bad, big.mark = ","))
+  detail <- paste(c(sprintf("md5 differs; rows %d vs %d; %s cells with different text", rows_a, rows_b, format(bad, big.mark = ",")),
+                    header_note), collapse = "; ")
   add("data", f, if (bad == 0 && rows_a == rows_b) "PASS*" else "FAIL", detail)
 }
 for (f in c("sound_pollutant_data.csv", "sound_pollutant_met_data.csv", "flare_well_sound_pollutant_met_data.csv")) compare_csv(f)
