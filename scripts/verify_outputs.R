@@ -35,25 +35,34 @@ if ("--run-notebook" %in% args) {
 
 # ---- data frames -----------------------------------------------------------------------
 # Cell-level comparison; returns counts and max absolute difference only.
-compare_columns <- function(a, b) {
+# Numbers within a relative tolerance count as equal (newer data.table parses some decimals
+# with ~1e-14 differences); `exact_cells` counts any bit-level difference.
+compare_columns <- function(a, b, tol = 1e-9) {
   cols <- intersect(names(a), names(b))
-  n_bad_cols <- 0L; n_bad_cells <- 0; max_diff <- 0
+  n_bad_cols <- 0L; n_bad_cells <- 0; n_exact <- 0; max_diff <- 0
   for (cn in cols) {
     x <- a[[cn]]; y <- b[[cn]]
     if (inherits(x, "POSIXt") || inherits(x, "Date")) { x <- as.numeric(x); y <- as.numeric(y) }
     if (is.factor(x)) x <- as.character(x)
     if (is.factor(y)) y <- as.character(y)
     if (is.list(x) || is.list(y)) { x <- vapply(x, paste, "", collapse = ","); y <- vapply(y, paste, "", collapse = ",") }
-    same <- (is.na(x) & is.na(y)) | (!is.na(x) & !is.na(y) & x == y)
-    same[is.na(same)] <- FALSE
+    both_na <- is.na(x) & is.na(y)
+    exact <- both_na | (!is.na(x) & !is.na(y) & x == y)
+    exact[is.na(exact)] <- FALSE
+    same <- exact
+    if (is.numeric(x) && is.numeric(y)) {
+      close <- !is.na(x) & !is.na(y) & abs(x - y) <= tol * pmax(1, abs(x))
+      same <- exact | close
+      if (any(!exact)) max_diff <- max(max_diff, max(abs(x - y)[!exact], na.rm = TRUE), na.rm = TRUE)
+    }
+    n_exact <- n_exact + sum(!exact)
     bad <- sum(!same)
     if (bad > 0) {
       n_bad_cols <- n_bad_cols + 1L
       n_bad_cells <- n_bad_cells + bad
-      if (is.numeric(x) && is.numeric(y)) max_diff <- max(max_diff, max(abs(x - y), na.rm = TRUE), na.rm = TRUE)
     }
   }
-  list(cols = n_bad_cols, cells = n_bad_cells, max_diff = max_diff)
+  list(cols = n_bad_cols, cells = n_bad_cells, exact_cells = n_exact, max_diff = max_diff)
 }
 
 compare_frames <- function(check, name, a, b) {
@@ -68,6 +77,10 @@ compare_frames <- function(check, name, a, b) {
   if (!identical(tz(a), tz(b))) notes <- c(notes, "POSIXct tzone attributes differ")
   if (nrow(a) == nrow(b)) {
     cc <- compare_columns(a, b)
+    if (cc$cells == 0 && cc$exact_cells > 0) {
+      return(add(check, name, "PASS~", paste(c(sprintf("equal within 1e-9 relative; %s cells differ in the last bits (max abs diff %s)",
+                                                         format(cc$exact_cells, big.mark = ","), fmt(cc$max_diff)), notes), collapse = "; ")))
+    }
     if (cc$cells == 0) {
       return(add(check, name, if (length(notes)) "PASS*" else "PASS",
                  paste(c("all values equal", notes, "(object attributes differ)"), collapse = "; ")))
@@ -174,6 +187,7 @@ report <- output_path("verification", "report.md")
 writeLines(c("# Verification report", "",
              sprintf("Generated %s. PASS = identical; PASS* = equal values/pixels but different bytes or attributes;",
                      format(Sys.time(), "%Y-%m-%d %H:%M")),
+             "PASS~ = numbers equal within 1e-9 relative (last-bit parsing differences);",
              "DIFF = rendered image differs; FAIL = values differ. No data values are included.", "",
              "| check | file | status | detail |", "|---|---|---|---|",
              sprintf("| %s | `%s` | %s | %s |", res$check, res$file, res$status, res$detail)), report)

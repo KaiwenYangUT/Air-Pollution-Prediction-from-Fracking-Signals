@@ -18,7 +18,9 @@ legacy_processed_dir: ~/STA497_data/processed
 # Figures, tables, maps, logs (relative to the repo root; gitignored).
 outputs_dir: outputs
 
-# Time zone the sound-logger "Start Time" strings are interpreted in. The original
-# notebooks parsed them without a tz, so they took the machine's zone (America/Toronto).
-# Pinned here so the sound/pollutant merge reproduces exactly on any machine.
-sound_tz: America/Toronto
+# Time zone the sound-logger "Start Time" strings are interpreted in. The notebooks parse
+# them without a tz, so the result depends on the session zone. The legacy analysis tables
+# (sound_pollutant_data, sound_pollutant_met_data and everything built on them) match
+# exactly only when the sound times are read as UTC, so UTC reproduces the reported
+# results. The true logger clock zone is unknown (see README, Known issues).
+sound_tz: UTC
