@@ -5,7 +5,7 @@ set -u
 shopt -s nocasematch
 
 data_re='\.(csv|tsv|txt|xlsx?|parquet|feather|h5|hdf5|sav|dta|sqlite|db|json|zip|gz|7z|rds|rdata|rda|html|png|jpe?g|svg|pdf)$'
-allow_re='^(renv\.lock|renv/settings\.json|docs/slides/[^/]+\.pdf)$'
+allow_re='^(renv\.lock|requirements\.txt|renv/settings\.json|docs/slides/[^/]+\.pdf)$'
 max_bytes=1048576
 bad=0
 

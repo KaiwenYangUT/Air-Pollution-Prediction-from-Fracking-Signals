@@ -52,5 +52,6 @@ __pycache__/
 
 # Exceptions (allowed through .gitignore and the pre-commit hook)
 !renv.lock
+!requirements.txt
 !renv/settings.json
 !docs/slides/*.pdf
