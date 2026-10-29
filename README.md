@@ -42,7 +42,7 @@ Column names and types are listed in [docs/data_dictionary.md](docs/data_diction
 
 ## Setup
 
-Requires R 4.5 and pandoc (for the self-contained map files).
+Requires R 4.5 and pandoc (for the self-contained map files). The Python models (steps 7–9) need Python 3.11.
 
 ```bash
 cp config.example.yml config.yml
@@ -54,6 +54,16 @@ Edit `data_root` in `config.yml`, then restore the pinned packages:
 Rscript -e 'renv::restore()'
 ```
 
+For the Python steps, create the virtual environment:
+
+```bash
+python3.11 -m venv .venv
+```
+
+```bash
+.venv/bin/pip install -r requirements.txt
+```
+
 ## Running
 
 From the repo root:
@@ -62,7 +72,8 @@ From the repo root:
 Rscript scripts/run_all.R
 ```
 
-`--with-models` also runs the slow XGBoost step (hours) and `--from N` resumes at step N.
+`--with-models` also runs the slow R XGBoost step (hours), `--with-python` runs the Python steps 7–9, and
+`--from N` resumes at step N.
 Each step's console output goes to `outputs/logs/`, not the terminal.
 
 | Step | Script | Outputs |
@@ -72,7 +83,10 @@ Each step's console output goes to `outputs/logs/`, not the terminal.
 | 3 | `scripts/03_summary_tables.R` | `outputs/tables/{frequency,pollutant,met}_summary_table.html` |
 | 4 | `scripts/04_correlation_heatmaps.R` | `outputs/figures/**.png` (Pearson/Spearman, all data and temperature/wind subsets) |
 | 5 | `scripts/05_spatial_flare_well.R` | `flare_well_sound_pollutant_met_data.csv`, wells/frequency tables, `outputs/maps/*.html` |
-| 6 | `scripts/06_models.R` (optional) | `outputs/models/` |
+| 6 | `scripts/06_models.R` (optional) | `outputs/models/` (R XGBoost exploration) |
+| 7 | `scripts/07_python_sta497_models.py` | `outputs/python/sta497/`: XGBoost NOx/NO₂ models, feature importance, prediction plots |
+| 8 | `scripts/08_python_sta465_models.py` | `outputs/python/sta465/`: linear and XGBoost models with flares and wells, residual plots |
+| 9 | `scripts/09_python_ac_sound_spectrograms.py` | `outputs/python/ac_sound/`: band spectrograms for air-conditioner screening |
 
 Derived data goes to `processed_rerun/`, and figures, tables and maps go to `outputs/` (gitignored).
 
@@ -86,8 +100,10 @@ Rscript scripts/verify_outputs.R --run-notebook
 
 ```
 R/            functions: config, load, clean, features (merges/subsets), visualize, model
+python/sta497/ Python package: config, data, variables, models, plots (steps 7-9)
 scripts/      numbered pipeline steps, run_all.R, verify_outputs.R, extract_schema.R, hooks/
-notebooks/    original R Markdown notebooks (paths updated only), kept for reference
+notebooks/    original R Markdown notebooks (paths updated only) and, in notebooks/python/, the
+              original Colab notebooks (outputs stripped), kept for reference
 archive/      superseded drafts of the stacking notebook and an empty stub
 docs/         data dictionary, verification summary, slides
 outputs/      generated figures/tables/maps/logs (gitignored)
@@ -116,8 +132,18 @@ The pipeline reproduces the original analysis as it was, with one fix (item 1):
    by several hours.
 3. **Untracked `Night` column.** The legacy `sound_pollutant_met_data` has a `Night` column that no code
    in this project creates. The pipeline output doesn't have it, and no figure or table uses it.
-4. **Missing model code.** The selected-frequency model, linear regression, feature-importance charts and
-   R² values in the slides were produced by code that is not part of this project.
+4. **Python models (steps 7–8).** These come from the original Colab notebooks and keep their choices:
+   - The final hyperparameters were hardcoded after tuning. `--tune` re-runs the grid search instead.
+   - The STA497 subset models use temp ≤ 75 °F, while the R heatmaps use ≤ 70 °F.
+   - In STA465, the all-predictor models predict **SO₂** but the selected-predictor model predicts **NOx**,
+     so the two aren't a like-for-like comparison.
+   - The STA465 table repeats each minute once per flare detected that day, so a random train/test split
+     puts copies of the same minute on both sides, and its test scores are optimistic.
+
+   Accidental bugs in the notebooks are fixed: tuning loops that compared against or trained on the wrong
+   data (commented in `python/sta497/models.py`), and printouts that showed another model's metrics. The
+   unseeded 500/1000-point sample plots, which paired NO₂ predictions with NOx labels, are dropped
+   because the full-test-set plots cover them.
 5. **Raw-data quirks.** `raw/sound/LNM049/` also holds LNM050's files, which the loader skips; LNM067 has
    duplicate `(1)` copies; LNM056 is empty; LNM015 has no Logged files.
 

@@ -25,7 +25,9 @@ The data is confidential research data.
   `legacy_processed_path()`, `output_path()`).
 - Run scripts from the repo root. Redirect their output to `outputs/logs/` (`run_all.R` does this).
   Read only exit codes and counts, never raw logs: R warnings and errors can echo data.
-- Don't add `head()`, `print()` or `View()` of data to pipeline code.
+- Don't add `head()`, `print()` or `View()` of data to pipeline code (`df.head()`/`print(df)` in Python).
+- Commit notebooks only with outputs stripped (the pre-commit hook enforces this). The originals with
+  outputs are in `archive/private/` and are not to be opened.
 - The pipeline writes to `processed_rerun/`, never to the legacy `processed/` folder.
 
 ## Pipeline
@@ -33,6 +35,8 @@ The data is confidential research data.
 `Rscript scripts/run_all.R` runs steps 01 to 05: stack the sound logs, merge them with pollutants and
 met data, write summary tables, correlation heatmaps, then the flare/well spatial join and maps.
 `--with-models` adds step 06, XGBoost, which takes hours (`06_models.R --smoke` gives a quick check).
+`--with-python` adds the Python steps 07–09 (`python/sta497/` package; `.venv` from `requirements.txt`). Python
+scripts write metrics to `outputs/python/*/metrics.csv` and never print them.
 
 `Rscript scripts/verify_outputs.R [--run-notebook]` compares outputs with the legacy files and with
 a re-run of the original notebook. It reports PASS/FAIL, checksums and difference counts only.

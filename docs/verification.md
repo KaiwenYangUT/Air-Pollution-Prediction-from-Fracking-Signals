@@ -37,6 +37,18 @@ Three legacy files from **22 Nov 2024** aren't reproduced: `frequency_correlatio
 with either UTC or Toronto sound times doesn't reproduce them. They came from an earlier,
 unrecorded version of the code or data.
 
+## Python models (steps 7–8) vs the original Colab notebooks
+
+The re-run metrics (Python 3.11, versions in `requirements.txt`, same input CSVs) were compared
+programmatically with the numbers printed in the original notebooks. Only differences are shown.
+
+| Model | Test R² difference | Reading |
+|---|---|---|
+| STA497 full-data NOx (all 37 measures) | 0.002 | Reproduced: RMSE and MAE are within 0.03. |
+| STA497 low-temperature/low-wind subset | 0.014 | Close: row subsampling (0.8) gives some drift across xgboost builds and CPUs. |
+| STA497 selected-frequency NOx | 0.09 | Not reproduced exactly. The model is deep and subsampled (depth 12, subsample 0.65), but a gap this size suggests the notebook's printed run differed in other ways too. |
+| STA465 linear, XGBoost (all and selected) | 0.17–0.27 | Not reproduced. The linear model is deterministic, and no tested variant (SO₂ vs NOx response, row filters, predictor sets) brings the gap close to zero. The notebook most likely ran on an earlier version of `flare_well_sound_pollutant_met_data.csv`. |
+
 ## Not verified
 
 - Leaflet maps (`outputs/maps/`): no legacy copies exist apart from the knitted reports.
