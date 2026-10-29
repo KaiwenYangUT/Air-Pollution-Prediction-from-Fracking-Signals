@@ -2,7 +2,7 @@
 # Reproduce all outputs in order. Run from the repo root:
 #   Rscript scripts/run_all.R                 # steps 1-5
 #   Rscript scripts/run_all.R --with-models   # also step 6 (hours)
-#   Rscript scripts/run_all.R --with-python   # also Python steps 7-9 (needs .venv, see README)
+#   Rscript scripts/run_all.R --with-python   # also Python steps 7-10 (needs .venv, see README)
 #   Rscript scripts/run_all.R --from 3        # resume from step 3
 # Each step runs in its own R process (frees memory between steps); its console output
 # goes to outputs/logs/<step>.log, never to the terminal, because logs can echo data.
@@ -13,7 +13,8 @@ steps <- c("01_stack_sound.R", "02_merge_sound_pollutant_met.R", "03_summary_tab
            "04_correlation_heatmaps.R", "05_spatial_flare_well.R")
 if ("--with-models" %in% args) steps <- c(steps, "06_models.R")
 if ("--with-python" %in% args) {
-  steps <- c(steps, "07_python_sta497_models.py", "08_python_sta465_models.py", "09_python_ac_sound_spectrograms.py")
+  steps <- c(steps, "07_python_sta497_models.py", "08_python_sta465_models.py", "09_python_ac_sound_spectrograms.py",
+             "10_python_kfold_cv.py")
 }
 
 dir.create("outputs/logs", recursive = TRUE, showWarnings = FALSE)

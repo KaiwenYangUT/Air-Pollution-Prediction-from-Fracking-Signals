@@ -42,7 +42,7 @@ Column names and types are listed in [docs/data_dictionary.md](docs/data_diction
 
 ## Setup
 
-Requires R 4.5 and pandoc (for the self-contained map files). The Python models (steps 7–9) need Python 3.11.
+Requires R 4.5 and pandoc (for the self-contained map files). The Python models (steps 7–10) need Python 3.11.
 
 ```bash
 cp config.example.yml config.yml
@@ -72,7 +72,7 @@ From the repo root:
 Rscript scripts/run_all.R
 ```
 
-`--with-models` also runs the slow R XGBoost step (hours), `--with-python` runs the Python steps 7–9, and
+`--with-models` also runs the slow R XGBoost step (hours), `--with-python` runs the Python steps 7–10, and
 `--from N` resumes at step N.
 Each step's console output goes to `outputs/logs/`, not the terminal.
 
@@ -87,6 +87,7 @@ Each step's console output goes to `outputs/logs/`, not the terminal.
 | 7 | `scripts/07_python_sta497_models.py` | `outputs/python/sta497/`: XGBoost NOx/NO₂ models, feature importance, prediction plots |
 | 8 | `scripts/08_python_sta465_models.py` | `outputs/python/sta465/`: linear and XGBoost models with flares and wells, residual plots |
 | 9 | `scripts/09_python_ac_sound_spectrograms.py` | `outputs/python/ac_sound/`: band spectrograms for air-conditioner screening |
+| 10 | `scripts/10_python_kfold_cv.py` | `outputs/python/sta497_cv/`: 5-fold CV of the NOx models, XGBoost vs Random Forest, random vs day-blocked folds |
 
 Derived data goes to `processed_rerun/`, and figures, tables and maps go to `outputs/` (gitignored).
 
@@ -100,10 +101,11 @@ Rscript scripts/verify_outputs.R --run-notebook
 
 ```
 R/            functions: config, load, clean, features (merges/subsets), visualize, model
-python/sta497/ Python package: config, data, variables, models, plots (steps 7-9)
+python/sta497/ Python package: config, data, variables, models, cv, plots (steps 7-10)
 scripts/      numbered pipeline steps, run_all.R, verify_outputs.R, extract_schema.R, hooks/
 notebooks/    original R Markdown notebooks (paths updated only) and, in notebooks/python/, the
-              original Colab notebooks (outputs stripped), kept for reference
+              original Colab notebooks (outputs stripped), kept for reference, plus the new
+              09_STA497_kfold_rf.ipynb (k-fold CV and Random Forest, same code as step 10)
 archive/      superseded drafts of the stacking notebook and an empty stub
 docs/         data dictionary, verification summary, slides
 outputs/      generated figures/tables/maps/logs (gitignored)
@@ -139,6 +141,11 @@ The pipeline reproduces the original analysis as it was, with one fix (item 1):
      so the two aren't a like-for-like comparison.
    - The STA465 table repeats each minute once per flare detected that day, so a random train/test split
      puts copies of the same minute on both sides, and its test scores are optimistic.
+   - Every split in steps 6–8 is random over 1-minute rows, so neighbouring minutes fall in both training and
+     test. Step 10 (and `notebooks/python/09_STA497_kfold_rf.ipynb`) re-scores the NOx models with 5-fold CV
+     under both random and day-blocked folds. It also re-adds a Random Forest baseline with new settings, since
+     the original RF cells were deleted. Step 10 keeps one copy per minute of the STA465 table. Quote the
+     day-blocked scores.
 
    Accidental bugs in the notebooks are fixed: tuning loops that compared against or trained on the wrong
    data (commented in `python/sta497/models.py`), and printouts that showed another model's metrics. The

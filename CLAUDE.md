@@ -11,10 +11,13 @@ The data is confidential research data.
   reports under `<data_root>/legacy_outputs/` or `outputs/` (they embed values).
 - Identify data by file name, extension and size only (`ls`, `du`, `find`). For column names and
   types, use `docs/data_dictionary.md` (regenerate with `Rscript scripts/extract_schema.R`).
-- Never paste data values into chat, commits, docs or code. That includes summary statistics,
-  correlation coefficients and model metrics from the data.
-- Nothing data-related goes into git. `.gitignore` and `scripts/hooks/pre-commit` enforce this;
-  check `git ls-files` after committing.
+- Never paste raw data values into chat, commits, docs or code: individual rows, records,
+  timestamps-with-readings, `head()`-style samples, or anything that reproduces the data itself.
+- **Results may be shown and published.** Model metrics (RMSE, MAE, R², accuracy), model
+  coefficients, feature importances, correlation coefficients and summary statistics are results,
+  not data. They can be read, reported in chat, and written into docs, README or commits.
+- No data files go into git. `.gitignore` and `scripts/hooks/pre-commit` enforce this; check
+  `git ls-files` after committing.
 - Do not push to any remote without asking first.
 - Nothing is deleted. Archive or back up instead.
 
@@ -35,8 +38,8 @@ The data is confidential research data.
 `Rscript scripts/run_all.R` runs steps 01 to 05: stack the sound logs, merge them with pollutants and
 met data, write summary tables, correlation heatmaps, then the flare/well spatial join and maps.
 `--with-models` adds step 06, XGBoost, which takes hours (`06_models.R --smoke` gives a quick check).
-`--with-python` adds the Python steps 07–09 (`python/sta497/` package; `.venv` from `requirements.txt`). Python
-scripts write metrics to `outputs/python/*/metrics.csv` and never print them.
+`--with-python` adds the Python steps 07–10 (`python/sta497/` package; `.venv` from `requirements.txt`). Python
+scripts write metrics to `outputs/python/*/metrics.csv`; reading and reporting them is fine.
 
 `Rscript scripts/verify_outputs.R [--run-notebook]` compares outputs with the legacy files and with
 a re-run of the original notebook. It reports PASS/FAIL, checksums and difference counts only.
