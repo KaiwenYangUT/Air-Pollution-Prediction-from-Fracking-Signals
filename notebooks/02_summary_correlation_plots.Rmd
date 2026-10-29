@@ -288,7 +288,7 @@ title("Frequency Correlation Heat Map", line = 3)  # Adjust `line` as needed
 # dev.off()
 ```
 
-### Actually, there are negative correlations but at maximum of [value redacted] 
+### Actually, there are negative correlations but at maximum of -0.07357209 
 ```{r}
 # Find the positions of negative values in the matrix
 negative_values <- which(frequency_cor_matrix < 0, arr.ind = TRUE)
