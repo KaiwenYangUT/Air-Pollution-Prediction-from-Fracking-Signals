@@ -12,16 +12,43 @@ This repository contains the analysis code only. **The data is confidential and 
 Which sound frequencies move together with pollutant concentrations (mainly NOx/NO₂), and can
 frequency groups be linked to the machinery that produces both the noise and the emissions?
 
-## Findings (qualitative)
+## Findings
 
 - Sound frequencies form clear low and high groups of strongly correlated bands.
 - Low frequencies are associated with compressors, generators and drilling, mid frequencies with
   pumps and pipelines, and high frequencies with flaring and venting.
-- An XGBoost model of NOx on a selected subset of frequencies fit better than one on all frequencies;
-  the A-weighted max/min levels, the C-weighted peak and the 12.5 Hz band were the top predictors.
+- The slides report that an XGBoost model of NOx on a selected subset of frequencies fit better than one
+  on all frequencies. The cross-validation below does not support that. The A-weighted max/min levels,
+  the C-weighted peak and the 12.5 Hz band were the top predictors.
 - Planned next step: filter air-conditioner on/off noise, which may contaminate low-to-mid frequencies.
 
 See `docs/slides/` for the presentation and guest lecture.
+
+### Cross-validation (step 10)
+
+The original models were scored on one random 60/20/20 split of 1-minute rows, so neighbouring,
+near-identical minutes sit in both training and test. Step 10 re-scores the NOx models with 5-fold
+cross-validation, in two ways:
+
+- **Random folds:** shuffled minutes, comparable to the original split.
+- **Day folds:** each calendar day falls entirely in one fold, so models are tested on unseen days.
+
+Values are mean test R² across folds:
+
+| NOx model | XGBoost, random | XGBoost, day | Random Forest, random | Random Forest, day |
+|---|---|---|---|---|
+| All 37 sound measures | 0.49 | 0.18 | 0.41 | 0.22 |
+| 19 selected frequencies | 0.42 | 0.17 | 0.35 | 0.20 |
+| STA465: 18 frequencies + wells + met (one row per minute) | 0.71 | 0.18 | 0.55 | 0.26 |
+
+- On unseen days, sound explains roughly a fifth of NOx variation. The random-split scores, including
+  those in the slides and the STA465 report, are optimistic because of leakage between neighbouring minutes.
+- The selected-frequency set does not beat the full set under either fold type.
+- Random Forest generalizes to new days better than the deep XGBoost models (depth 9–12).
+- Adding wells and meteorology (STA465) doesn't help on unseen days.
+- Individual day folds range from about 0.09 to 0.41 R², so performance varies a lot from day to day.
+
+Per-fold results are written to `outputs/python/sta497_cv/` when step 10 runs.
 
 ## Data (not in this repository)
 
