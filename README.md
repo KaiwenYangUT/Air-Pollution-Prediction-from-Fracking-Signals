@@ -1,186 +1,211 @@
-# STA497: Noise frequencies and air pollution near oil and gas activity
+# Listening for Pollution
 
-Research project (University of Toronto, STA497 reading course, 2024–25) that studies whether the noise
-recorded by a stationary monitoring trailer in the Permian Basin can help trace air pollution, mainly
-NOx, back to oil and gas sources such as compressors, pumps and flares. The project also
-fed an STA465 (spatial statistics) report on flares and wells around the trailer.
+### Can the sound of an oil field tell us what is in its air?
 
-This repository contains the analysis code only. **The data is confidential and is not included.**
+For a year, from May 2023 to May 2024, a monitoring trailer sat in the Permian Basin, a few kilometres from
+working wells and gas flares. Every minute it logged two things: what the air contained (NOx, NO₂,
+methane, ozone, sulfur gases) and what the place sounded like, split into 32 frequency bands from a
+12.5 Hz rumble to a 16 kHz hiss. The weather station on its roof kept its own log of wind, heat,
+humidity and sun.
 
-## Research question
+Machines are loud in characteristic ways. Compressors drone low, pumps hum in the middle, flares roar
+and hiss at the top. The hope behind this project is simple: if a machine has an acoustic signature
+and also an emissions signature, then listening might be a cheap way to tell which sources are
+polluting, and when.
 
-Which sound frequencies move together with pollutant concentrations (mainly NOx/NO₂), and can
-frequency groups be linked to the machinery that produces both the noise and the emissions?
+This repository is the full analysis, rebuilt so it can be re-run from raw logs to final figures.
+**The data is confidential and is not included.** The code, the methods and the results are.
 
-## Findings
+*A University of Toronto STA497 research project (2024–25), with an STA465 spatial-statistics
+extension on the flares and wells around the trailer.*
 
-- Sound frequencies form clear low and high groups of strongly correlated bands.
-- Low frequencies are associated with compressors, generators and drilling, mid frequencies with
-  pumps and pipelines, and high frequencies with flaring and venting.
-- The slides report that an XGBoost model of NOx on a selected subset of frequencies fit better than one
-  on all frequencies. The cross-validation below does not support that. The A-weighted max/min levels,
-  the C-weighted peak and the 12.5 Hz band were the top predictors.
-- Planned next step: filter air-conditioner on/off noise, which may contaminate low-to-mid frequencies.
+---
 
-See `docs/slides/` for the presentation and guest lecture.
+## What we found
 
-### Cross-validation (step 10)
+**The sound has structure.** The 37 sound measures fall into a few tightly correlated families. Low
+bands move together, high bands move together, and there's little crosstalk between them. That's the
+first sign that different machines are being heard separately: low frequencies line up with
+compressors, generators and drilling, mid frequencies with pumps and pipelines, and high frequencies
+with flaring and venting.
 
-The original models were scored on one random 60/20/20 split of 1-minute rows, so neighbouring,
-near-identical minutes sit in both training and test. Step 10 re-scores the NOx models with 5-fold
-cross-validation, in two ways:
+**Sound alone predicts some of the pollution, but less than it first appeared.** The original models
+were XGBoost regressions scored on a random split of the minutes. On that split, sound explains about
+half the variation in NOx. When the models are tested on days they have never seen, that drops to about
+a fifth. The reason is explained in [How honest is a score?](#how-honest-is-a-score) below.
 
-- **Random folds:** shuffled minutes, comparable to the original split.
-- **Day folds:** each calendar day falls entirely in one fold, so models are tested on unseen days.
+**Weather adds real signal.** Adding seven weather variables (temperature, wind speed and direction,
+humidity, pressure, water vapour, sunlight) to the sound measures gives the strongest models in the
+project: on days they have never seen, they explain about a third of the variation in NOx
+and about half of the variation in NO₂, roughly double what sound manages alone. NO₂ is consistently the
+easier target.
 
-Values are mean test R² across folds:
+**The loudest clues are broadband.** The model relies most on the overall A-weighted maximum and minimum
+levels, the C-weighted peak and the lowest band, 12.5 Hz, rather than on any single mid-range tone.
 
-| NOx model | XGBoost, random | XGBoost, day | Random Forest, random | Random Forest, day |
-|---|---|---|---|---|
-| All 37 sound measures | 0.49 | 0.18 | 0.41 | 0.22 |
-| 19 selected frequencies | 0.42 | 0.17 | 0.35 | 0.20 |
-| STA465: 18 frequencies + wells + met (one row per minute) | 0.71 | 0.18 | 0.55 | 0.26 |
+**Hand-picking frequencies didn't help.** Keeping one representative from each correlated family (19 of
+the 37 measures) seemed to fit better in the original analysis. Under cross-validation it doesn't: the
+full set is as good or better.
 
-- On unseen days, sound explains roughly a fifth of NOx variation. The random-split scores, including
-  those in the slides and the STA465 report, are optimistic because of leakage between neighbouring minutes.
-- The selected-frequency set does not beat the full set under either fold type.
-- Random Forest generalizes to new days better than the deep XGBoost models (depth 9–12).
-- Adding wells and meteorology (STA465) doesn't help on unseen days.
-- Individual day folds range from about 0.09 to 0.41 R², so performance varies a lot from day to day.
+### The scoreboard
 
-Per-fold results are written to `outputs/python/sta497_cv/` when step 10 runs.
+Mean test R² across 5 folds. *Random* folds shuffle minutes; *day* folds hold out whole days.
 
-## Data (not in this repository)
+| Model | Predicts | XGBoost, random | XGBoost, day | Random Forest, random | Random Forest, day |
+|---|---|---|---|---|---|
+| All 37 sound measures | NOx | 0.49 | 0.18 | 0.41 | 0.22 |
+| 19 selected frequencies | NOx | 0.42 | 0.17 | 0.35 | 0.20 |
+| Sound + weather (44 predictors) | NOx | 0.66 | **0.34** | 0.57 | **0.34** |
+| Sound + weather (44 predictors) | NO₂ | 0.81 | **0.51** | 0.77 | **0.53** |
+| STA465: 18 frequencies + wells + weather | NOx | 0.71 | 0.18 | 0.55 | 0.26 |
 
-All data lives outside the repo, in the folder named by `data_root` in `config.yml`:
+On a single random 60/20/20 split, the setup the original notebooks used, the sound + weather
+XGBoost reaches R² 0.80 for NO₂ and 0.64 for NOx.
+
+### How honest is a score?
+
+Pollution and noise change slowly from minute to minute. If the 10:41 reading is in the training set
+and the 10:42 reading is in the test set, the model hasn't learned much by "predicting" the second: it has
+effectively seen the answer. Random splits of minute-level data are full of these near-twins, so they
+flatter every model.
+
+Holding out whole days removes the twins and asks the question that matters in practice: given a day
+the model has never heard, how well can it read the air? Three things stand out:
+
+- Every model loses a large share of its apparent skill: sound-only models lose about two thirds, and
+  sound + weather models about 40%. Day-fold scores are the ones to quote.
+- Random Forest matches or beats the deep XGBoost models (depth 9–12) on unseen days, even though
+  XGBoost wins on random folds. Deep boosted trees tend to memorize within-day patterns.
+- Days differ a lot. For the sound-only models, individual day folds range from about 0.09 to 0.41 R²,
+  so some days sound much more like their pollution than others. Adding weather narrows that spread.
+
+The STA465 table makes the effect especially stark: it repeats each minute once per flare seen that day,
+so in the original split the same minute could sit on both sides. With one copy per minute and days held
+out, it lands with the sound-only models, below sound + weather on the full year. It is limited to
+flare days (about 9,600 minutes), which leaves too little data for wells and flares to add anything.
+
+---
+
+## Inside the machine
+
+The analysis runs as ten numbered steps: R for the data engineering and figures, Python for the heavier
+modelling.
+
+| Step | Script | What it does | Where results land |
+|---|---|---|---|
+| 1 | `01_stack_sound.R` | Stacks 89 monitor deployments of minute-level sound logs | `processed_rerun/008_097_logged_*.rdata` |
+| 2 | `02_merge_sound_pollutant_met.R` | Cleans five pollutant feeds and the weather, joins them to sound by minute | `sound_pollutant_met_data.*` |
+| 3 | `03_summary_tables.R` | Summary tables for sound, pollutants and weather | `outputs/tables/` |
+| 4 | `04_correlation_heatmaps.R` | Pearson/Spearman heatmaps, all data and temperature/wind subsets | `outputs/figures/` |
+| 5 | `05_spatial_flare_well.R` | Flares and wells within 20 km; joins them by date and month; maps | `flare_well_*.csv`, `outputs/maps/` |
+| 6 | `06_models.R` *(optional)* | Early R XGBoost experiments (slow) | `outputs/models/` |
+| 7 | `07_python_sta497_models.py` | XGBoost NOx/NO₂ models (sound only and sound + weather), feature importance, prediction plots | `outputs/python/sta497/` |
+| 8 | `08_python_sta465_models.py` | Linear and XGBoost models with flares and wells | `outputs/python/sta465/` |
+| 9 | `09_python_ac_sound_spectrograms.py` | Spectrograms for spotting air-conditioner cycling | `outputs/python/ac_sound/` |
+| 10 | `10_python_kfold_cv.py` | The scoreboard: 5-fold CV, XGBoost vs Random Forest, random vs day folds | `outputs/python/sta497_cv/` |
+
+```
+R/              config, load, clean, features (merges, subsets), visualize, model
+python/sta497/  config, data, variables, models, cv, plots
+scripts/        the numbered steps, run_all.R, verify_outputs.R, extract_schema.R, hooks/
+notebooks/      the original R Markdown and Colab notebooks (outputs stripped), kept for reference
+archive/        superseded drafts
+docs/           data dictionary, verification report, slides
+outputs/        everything generated (gitignored)
+```
+
+## Running it yourself
+
+You'll need R 4.5, pandoc, Python 3.11, and access to the data.
+
+1. Point the code at the data:
+
+   ```bash
+   cp config.example.yml config.yml
+   ```
+
+   Then set `data_root` in `config.yml`.
+
+2. Restore the pinned R packages:
+
+   ```bash
+   Rscript -e 'renv::restore()'
+   ```
+
+3. Create the Python environment:
+
+   ```bash
+   python3.11 -m venv .venv
+   ```
+
+   ```bash
+   .venv/bin/pip install -r requirements.txt
+   ```
+
+4. Run everything:
+
+   ```bash
+   Rscript scripts/run_all.R --with-python
+   ```
+
+   `--from N` resumes at step N, and `--with-models` adds the slow R step 6. Console output goes to
+   `outputs/logs/`, never the terminal.
+
+5. Check the rebuild against the original outputs:
+
+   ```bash
+   Rscript scripts/verify_outputs.R --run-notebook
+   ```
+
+The data stays outside the repository:
 
 ```
 <data_root>/
 ├── raw/
-│   ├── sound/LNM*/        sound-level-meter logs, one folder per monitor deployment
-│   ├── pollutants/        Boulder AIR 1-minute CH4, CO, H2S, NOx, O3
-│   ├── met/               Boulder AIR 1-minute meteorology
-│   └── spatial/           well production (cb_wells_prod.rds), VIIRS flares (pb-vnf_*.rds)
-├── processed/             derived data from the original 2024-25 runs (verification baseline)
-└── processed_rerun/       derived data written by this pipeline
+│   ├── sound/LNM*/      sound-level-meter logs, one folder per deployment
+│   ├── pollutants/      1-minute CH4, CO, H2S/SO2, NOx, O3
+│   ├── met/             1-minute weather
+│   └── spatial/         well production and VIIRS flare detections
+├── processed/           derived data from the original 2024–25 runs (verification baseline)
+└── processed_rerun/     derived data written by this pipeline
 ```
 
-Column names and types are listed in [docs/data_dictionary.md](docs/data_dictionary.md).
-
-## Setup
-
-Requires R 4.5 and pandoc (for the self-contained map files). The Python models (steps 7–10) need Python 3.11.
-
-```bash
-cp config.example.yml config.yml
-```
-
-Edit `data_root` in `config.yml`, then restore the pinned packages:
-
-```bash
-Rscript -e 'renv::restore()'
-```
-
-For the Python steps, create the virtual environment:
-
-```bash
-python3.11 -m venv .venv
-```
-
-```bash
-.venv/bin/pip install -r requirements.txt
-```
-
-## Running
-
-From the repo root:
-
-```bash
-Rscript scripts/run_all.R
-```
-
-`--with-models` also runs the slow R XGBoost step (hours), `--with-python` runs the Python steps 7–10, and
-`--from N` resumes at step N.
-Each step's console output goes to `outputs/logs/`, not the terminal.
-
-| Step | Script | Outputs |
-|---|---|---|
-| 1 | `scripts/01_stack_sound.R` | `008_097_logged_{spectra,bb}.rdata` |
-| 2 | `scripts/02_merge_sound_pollutant_met.R` | `sound_merge_data.rdata`, `sound_pollutant_data.*`, `sound_pollutant_met_data.*` |
-| 3 | `scripts/03_summary_tables.R` | `outputs/tables/{frequency,pollutant,met}_summary_table.html` |
-| 4 | `scripts/04_correlation_heatmaps.R` | `outputs/figures/**.png` (Pearson/Spearman, all data and temperature/wind subsets) |
-| 5 | `scripts/05_spatial_flare_well.R` | `flare_well_sound_pollutant_met_data.csv`, wells/frequency tables, `outputs/maps/*.html` |
-| 6 | `scripts/06_models.R` (optional) | `outputs/models/` (R XGBoost exploration) |
-| 7 | `scripts/07_python_sta497_models.py` | `outputs/python/sta497/`: XGBoost NOx/NO₂ models, feature importance, prediction plots |
-| 8 | `scripts/08_python_sta465_models.py` | `outputs/python/sta465/`: linear and XGBoost models with flares and wells, residual plots |
-| 9 | `scripts/09_python_ac_sound_spectrograms.py` | `outputs/python/ac_sound/`: band spectrograms for air-conditioner screening |
-| 10 | `scripts/10_python_kfold_cv.py` | `outputs/python/sta497_cv/`: 5-fold CV of the NOx models, XGBoost vs Random Forest, random vs day-blocked folds |
-
-Derived data goes to `processed_rerun/`, and figures, tables and maps go to `outputs/` (gitignored).
-
-To check a run against the original outputs:
-
-```bash
-Rscript scripts/verify_outputs.R --run-notebook
-```
-
-## Repository layout
-
-```
-R/            functions: config, load, clean, features (merges/subsets), visualize, model
-python/sta497/ Python package: config, data, variables, models, cv, plots (steps 7-10)
-scripts/      numbered pipeline steps, run_all.R, verify_outputs.R, extract_schema.R, hooks/
-notebooks/    original R Markdown notebooks (paths updated only) and, in notebooks/python/, the
-              original Colab notebooks (outputs stripped), kept for reference, plus the new
-              09_STA497_kfold_rf.ipynb (k-fold CV and Random Forest, same code as step 10)
-archive/      superseded drafts of the stacking notebook and an empty stub
-docs/         data dictionary, verification summary, slides
-outputs/      generated figures/tables/maps/logs (gitignored)
-```
-
-The pre-commit hook in `scripts/hooks/pre-commit` refuses data-like files. Install it with:
+Column names and types are listed in [docs/data_dictionary.md](docs/data_dictionary.md). A pre-commit
+hook keeps data files and notebook outputs out of git. Install it once per clone:
 
 ```bash
 cp scripts/hooks/pre-commit .git/hooks/pre-commit
 ```
 
-## Known issues
+## Rebuilding it faithfully
 
-The pipeline reproduces the original analysis as it was, with one fix (item 1):
+The original analysis lived in R Markdown and Colab notebooks. Rebuilding it meant reproducing their
+outputs exactly, then fixing what was wrong in the open. The details are in
+[docs/verification.md](docs/verification.md).
 
-1. **High-temperature subset (fixed).** The original notebook built the "> 100F, wind ≤ 7 m/s" subset from the
-   ≤ 70F rows, so its 12 heatmaps (in the legacy outputs and the slides' era) actually showed ≤ 70F data.
-   `temp_wind_subsets()` in `R/features.R` now uses the > 100F rows, so `outputs/figures/subset_temp_gt100_wsp_le7/`
-   differs from the legacy figures. `notebooks/02` still contains the original line, for reference.
-2. **Time zones.** The notebooks parse sound timestamps without a time zone, so the result depends on the
-   R session. The legacy analysis tables, and every figure, table and model built on them, match
-   exactly only when sound times are read as **UTC**, the same zone as the pollutant `time_utc`. That
-   is what `sound_tz: UTC` in `config.yml` reproduces. The oldest saved sound table
-   (`sound_merge_data.rdata`, Oct 2024) was parsed in America/Toronto instead. The loggers' true clock
-   zone is unknown: if they record local site time (Mountain), the sound-to-pollutant join is shifted
-   by several hours.
-3. **Untracked `Night` column.** The legacy `sound_pollutant_met_data` has a `Night` column that no code
-   in this project creates. The pipeline output doesn't have it, and no figure or table uses it.
-4. **Python models (steps 7–8).** These come from the original Colab notebooks and keep their choices:
-   - The final hyperparameters were hardcoded after tuning. `--tune` re-runs the grid search instead.
-   - The STA497 subset models use temp ≤ 75 °F, while the R heatmaps use ≤ 70 °F.
-   - In STA465, the all-predictor models predict **SO₂** but the selected-predictor model predicts **NOx**,
-     so the two aren't a like-for-like comparison.
-   - The STA465 table repeats each minute once per flare detected that day, so a random train/test split
-     puts copies of the same minute on both sides, and its test scores are optimistic.
-   - Every split in steps 6–8 is random over 1-minute rows, so neighbouring minutes fall in both training and
-     test. Step 10 (and `notebooks/python/09_STA497_kfold_rf.ipynb`) re-scores the NOx models with 5-fold CV
-     under both random and day-blocked folds. It also re-adds a Random Forest baseline with new settings, since
-     the original RF cells were deleted. Step 10 keeps one copy per minute of the STA465 table. Quote the
-     day-blocked scores.
+- **Reproduced:** the merged analysis tables (byte-identical CSVs), the legacy figures and summary
+  tables (apart from those listed below), and the original full-data NOx model (within 0.002 R²).
+- **Fixed:** the "> 100 °F" heatmaps were built from the ≤ 70 °F rows. They now use the right rows, and the
+  legacy versions are kept for comparison. Several notebook slips (tuning loops scored on the wrong data,
+  printouts of the wrong model) are corrected in the Python code.
+- **Not reproducible:** two figures and a summary table from November 2024, and the STA465 notebook's
+  printed scores, came from earlier, unrecorded versions of the code or data.
 
-   Accidental bugs in the notebooks are fixed: tuning loops that compared against or trained on the wrong
-   data (commented in `python/sta497/models.py`), and printouts that showed another model's metrics. The
-   unseeded 500/1000-point sample plots, which paired NO₂ predictions with NOx labels, are dropped
-   because the full-test-set plots cover them.
-5. **Raw-data quirks.** `raw/sound/LNM049/` also holds LNM050's files, which the loader skips; LNM067 has
-   duplicate `(1)` copies; LNM056 is empty; LNM015 has no Logged files.
+## Loose threads
+
+- **Whose clock?** The legacy tables match only when sound timestamps are read as UTC, the zone of the
+  pollutant feed, so `sound_tz: UTC` reproduces them. If the loggers actually record local Mountain time,
+  sound and air are offset by several hours. Confirming the logger clock is the most valuable open question.
+- **Like-for-like.** In STA465, the all-predictor models predict SO₂ while the selected-predictor model
+  predicts NOx. The Python subset models use ≤ 75 °F, while the R heatmaps use ≤ 70 °F.
+- **A stray column.** The legacy merged table has a `Night` column that no surviving code creates. Nothing
+  downstream uses it.
+- **Odd files.** `raw/sound/LNM049/` also holds LNM050's logs, which the loader skips. LNM067 has duplicate
+  copies, LNM056 is empty and LNM015 has no Logged files.
+- **Fixed hyperparameters.** Final XGBoost settings are the ones the notebooks settled on. `--tune` on
+  step 7 re-runs the grid search.
 
 ## Author
 
-Kaiwen Yang, University of Toronto.
+**Kaiwen Yang**, University of Toronto. Slides from the STA497 presentation and an STA304 guest lecture are
+in [docs/slides/](docs/slides/).

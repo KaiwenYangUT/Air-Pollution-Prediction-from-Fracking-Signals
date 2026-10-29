@@ -7,6 +7,8 @@ Restructured from notebooks/python/06_STA497_models.ipynb. Experiments:
   3. subset_nox      NOx ~ 37 sound measures, temp <= 75F and wind <= 7 m/s
   4. subset_met_nox  as 3, plus 7 meteorological predictors
   5. selected_nox    NOx ~ 19 frequencies selected from the corr > 0.9 grouping (all data)
+  6. sound_met_nox   NOx ~ 37 sound measures + 7 meteorological predictors (all data)
+  7. sound_met_no2   NO2 ~ the same 44 predictors (all data)
 
 Final models use the hyperparameters the notebook settled on (FINAL_PARAMS). --tune re-runs
 the validation grid search for each experiment instead (slow) and records its choice.
@@ -34,6 +36,9 @@ FINAL_PARAMS = {
 }
 FINAL_PARAMS["full_no2"] = FINAL_PARAMS["full_nox"]        # reused, not re-tuned
 FINAL_PARAMS["subset_met_nox"] = FINAL_PARAMS["full_nox"]  # as recorded in the notebook
+# Added after the notebooks: the met predictors on all data rather than only the subset.
+FINAL_PARAMS["sound_met_nox"] = FINAL_PARAMS["full_nox"]
+FINAL_PARAMS["sound_met_no2"] = FINAL_PARAMS["full_nox"]
 
 
 def fig(name):
@@ -92,6 +97,8 @@ def main(tune=False):
     row, selected_model = run("selected_nox", prepare(df_no2, SELECTED_FREQUENCY + ["nox"]), SELECTED_FREQUENCY, "nox", tune, "Selected Frequencies")
     plots.importance(selected_model, fig("selected_nox_importance_top10.png"), "Variable Importance (Top 10)", 10)
     rows.append(row)
+    rows.append(run("sound_met_nox", prepare(df_no2, FREQUENCY + MET + ["nox"]), FREQUENCY + MET, "nox", tune, "Sound + Met")[0])
+    rows.append(run("sound_met_no2", prepare(df_no2, FREQUENCY + MET + ["no2"]), FREQUENCY + MET, "no2", tune, "Sound + Met")[0])
 
     out = output_path("sta497", "metrics_tuned.csv" if tune else "metrics.csv")
     pd.DataFrame(rows).to_csv(out, index=False)

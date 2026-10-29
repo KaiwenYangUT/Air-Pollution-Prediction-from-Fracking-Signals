@@ -8,7 +8,7 @@ import pandas as pd
 
 from . import models
 from .data import load_csv, prepare
-from .variables import FREQUENCY, SELECTED_FREQUENCY, STA465_ALL, STA465_SELECTED
+from .variables import FREQUENCY, MET, SELECTED_FREQUENCY, STA465_ALL, STA465_SELECTED
 
 # Same settings as FINAL_PARAMS in scripts/07 and PARAMS in scripts/08.
 XGB_PARAMS = {
@@ -16,6 +16,8 @@ XGB_PARAMS = {
     "selected_nox": models.xgb_params(max_depth=12, eta=0.01, subsample=0.65, colsample_bytree=1.0),
     "sta465_selected_nox": models.xgb_params(max_depth=12, eta=0.01, subsample=0.65, colsample_bytree=1.0),
 }
+XGB_PARAMS["sound_met_nox"] = XGB_PARAMS["full_nox"]
+XGB_PARAMS["sound_met_no2"] = XGB_PARAMS["full_nox"]
 
 SCHEMES = ("random", "day")
 MODELS = ("xgb", "rf")
@@ -33,11 +35,13 @@ def load_experiments() -> dict:
     """name -> (data, predictors, response).
 
     full_nox             NOx ~ 37 sound measures                       (rows as scripts/07)
+    sound_met_nox        NOx ~ 37 sound measures + 7 met               (rows as scripts/07)
+    sound_met_no2        NO2 ~ 37 sound measures + 7 met               (rows as scripts/07)
     selected_nox         NOx ~ 19 selected frequencies                 (rows as scripts/07)
     sta465_selected_nox  NOx ~ 29 predictors: 18 frequencies, 4 well,  (rows as scripts/08,
                          7 met                                          one copy per minute)
     """
-    df = load_csv("sound_pollutant_met_data.csv", FREQUENCY + ["nox", "no2", "time_utc"])
+    df = load_csv("sound_pollutant_met_data.csv", FREQUENCY + MET + ["nox", "no2", "time_utc"])
     df_nox = prepare(df, FREQUENCY + ["nox"])
     df_no2 = prepare(df_nox, FREQUENCY + ["no2"])
 
@@ -51,6 +55,8 @@ def load_experiments() -> dict:
     return {
         "full_nox": (with_day(df_nox), FREQUENCY, "nox"),
         "selected_nox": (with_day(prepare(df_no2, SELECTED_FREQUENCY + ["nox"])), SELECTED_FREQUENCY, "nox"),
+        "sound_met_nox": (with_day(prepare(df_no2, FREQUENCY + MET + ["nox"])), FREQUENCY + MET, "nox"),
+        "sound_met_no2": (with_day(prepare(df_no2, FREQUENCY + MET + ["no2"])), FREQUENCY + MET, "no2"),
         "sta465_selected_nox": (with_day(flare), STA465_SELECTED, "nox"),
     }
 
