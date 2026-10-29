@@ -2,6 +2,8 @@
 # Attempts 1 and 2 are ported; attempt 3 passes a grid list to xgb.cv and does not run,
 # so it stays in the notebook only. The selected-frequency model, linear regression and
 # feature-importance charts shown in the slides have no code in this project.
+# Requires xgboost 1.7.x (pinned in renv.lock): caret's xgbTree does not support xgboost >= 3,
+# and this code uses the 1.x API (watchlist, cv$best_iteration) as the original did.
 
 library(xgboost)
 library(data.table)
@@ -56,7 +58,7 @@ fit_xgb_grid <- function(sound_pollutant_met_data, response = "no2",
             if (min_rmse < best_rmse) {
               best_rmse <- min_rmse
               best_param <- params
-              best_nrounds <- cv$early_stop$best_iteration %||% cv$best_iteration
+              best_nrounds <- cv$best_iteration
             }
           }
         }
@@ -64,10 +66,10 @@ fit_xgb_grid <- function(sound_pollutant_met_data, response = "no2",
     }
   }
 
-  # Fit the final model (xgboost >= 2 renamed `watchlist` to `evals`)
+  # Fit the final model
   final_model <- xgb.train(params = best_param, data = dtrain, nrounds = best_nrounds,
-                           evals = list(train = dtrain, valid = dvalid),
-                           early_stopping_rounds = 10, verbose = 0)
+                           watchlist = list(train = dtrain, valid = dvalid),
+                           early_stopping_rounds = 10, verbose = 1)
 
   # Evaluate on test set
   preds <- predict(final_model, dtest)
