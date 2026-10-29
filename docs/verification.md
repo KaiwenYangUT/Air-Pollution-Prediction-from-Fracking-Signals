@@ -25,8 +25,9 @@ summarizes it. It contains no data values.
 
 | Check | Result |
 |---|---|
-| Figures vs notebook re-run | 25/25 identical |
-| Figures vs legacy | 36 identical; 1 differs in 0.001% of pixels (anti-aliasing); 2 differ (below) |
+| Figures vs notebook re-run | 13/13 identical outside the fixed subset |
+| Figures vs legacy | 24 identical; 1 differs in 0.001% of pixels (anti-aliasing); 2 differ (below) |
+| > 100F subset figures (12) | Differ from legacy and notebook, as intended: the subset bug is fixed (README, Known issues 1). Before the fix, all 12 were identical to the notebook re-run and the legacy files. |
 | Tables vs notebook re-run | 2/2 identical |
 | Tables vs legacy | 4/5 identical; 1 differs (below) |
 

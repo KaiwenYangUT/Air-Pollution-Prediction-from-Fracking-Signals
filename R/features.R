@@ -75,13 +75,13 @@ merge_met <- function(met_data_reduced, sound_pollutant_data) {
 
 # ---- Temperature / wind subsets (notebooks/02, "Correlation Heat Map (temp ...)") ------
 
-# KNOWN BUG (reproduced on purpose, see README "Known issues"): the original builds the
-# "> 100F" subset from the <= 70F rows, so both subsets contain the same data.
+# The original notebook built the "> 100F" subset from the <= 70F rows
+# (sound_low_temp[sound_low_temp$wsp_ms <= 7, ]); fixed here to use the > 100F rows.
 temp_wind_subsets <- function(sound_pollutant_met_data) {
   sound_low_temp <- sound_pollutant_met_data[sound_pollutant_met_data$temp_f <= 70, ]
   sound_low_temp_ws <- sound_low_temp[sound_low_temp$wsp_ms <= 7, ]
   sound_high_temp <- sound_pollutant_met_data[sound_pollutant_met_data$temp_f > 100, ]
-  sound_high_temp_ws <- sound_low_temp[sound_low_temp$wsp_ms <= 7, ]
+  sound_high_temp_ws <- sound_high_temp[sound_high_temp$wsp_ms <= 7, ]
   list(low_temp_ws = sound_low_temp_ws, high_temp_ws = sound_high_temp_ws)
 }
 

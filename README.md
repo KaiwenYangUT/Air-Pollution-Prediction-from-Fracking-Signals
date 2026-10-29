@@ -101,11 +101,12 @@ cp scripts/hooks/pre-commit .git/hooks/pre-commit
 
 ## Known issues
 
-The pipeline reproduces the original analysis as it was, including these issues:
+The pipeline reproduces the original analysis as it was, with one fix (item 1):
 
-1. **High-temperature subset uses low-temperature data.** In the original notebook the "> 100F, wind ≤ 7 m/s"
-   subset is built from the ≤ 70F rows (`R/features.R`, `temp_wind_subsets()`), so the two sets of subset
-   heatmaps show the same data with different titles.
+1. **High-temperature subset (fixed).** The original notebook built the "> 100F, wind ≤ 7 m/s" subset from the
+   ≤ 70F rows, so its 12 heatmaps (in the legacy outputs and the slides' era) actually showed ≤ 70F data.
+   `temp_wind_subsets()` in `R/features.R` now uses the > 100F rows, so `outputs/figures/subset_temp_gt100_wsp_le7/`
+   differs from the legacy figures. `notebooks/02` still contains the original line, for reference.
 2. **Time zones.** The notebooks parse sound timestamps without a time zone, so the result depends on the
    R session. The legacy analysis tables, and every figure, table and model built on them, match
    exactly only when sound times are read as **UTC**, the same zone as the pollutant `time_utc`. That
